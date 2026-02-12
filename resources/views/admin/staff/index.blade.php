@@ -3,67 +3,51 @@
 @section('header', 'Staff Directory')
 
 @section('content')
-<div class="card border-0 shadow-sm rounded-4">
-    <div class="card-body p-4">
-        
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold kca-navy mb-0">Registered Staff</h5>
-            <a href="{{ route('admin.staff.create') }}" class="btn btn-primary rounded-pill px-4" style="background-color: #192C57;">
-                <i class="fas fa-plus me-2"></i> Add Staff
+<div class="container-fluid">
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form action="{{ route('admin.staff.index') }}" method="GET" class="position-relative">
+                <input type="text" name="search" class="form-control form-control-lg ps-5 rounded-pill shadow-sm border-0" 
+                       placeholder="Search for a department..." value="{{ request('search') }}">
+                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @forelse($departments as $dept)
+        <div class="col-md-4 col-lg-3">
+            <a href="{{ route('admin.staff.show', $dept->id) }}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-card" style="transition: transform 0.2s;">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3 position-relative d-inline-block">
+                            <i class="fas fa-folder fa-4x text-warning"></i>
+                            <span class="position-absolute top-50 start-50 translate-middle text-white fw-bold" style="font-size: 0.9rem; margin-top: 5px;">
+                                {{ $dept->staff_count }}
+                            </span>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">{{ $dept->name }}</h5>
+                        <small class="text-muted">{{ $dept->code ?? 'No Code' }}</small>
+                    </div>
+                    <div class="card-footer bg-white border-0 text-center pb-3">
+                        <small class="text-primary fw-bold">View Staff <i class="fas fa-arrow-right ms-1"></i></small>
+                    </div>
+                </div>
             </a>
         </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="bg-light text-secondary small text-uppercase">
-                    <tr>
-                        <th class="ps-4">Staff No.</th>
-                        <th>Name</th>
-                        <th>Department</th>
-                        <th>Allowance</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($staffMembers as $staff)
-                    <tr>
-                        <td class="ps-4 fw-bold text-primary">{{ $staff->staff_number }}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; color: #192C57; font-weight: bold;">
-                                    {{ substr($staff->name, 0, 1) }}
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">{{ $staff->name }}</h6>
-                                    <small class="text-muted">{{ $staff->email }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-light text-dark border">{{ $staff->department }}</span></td>
-                        <td class="fw-bold text-success">KES {{ $staff->daily_allocation }}</td>
-                        <td><span class="badge bg-success">Active</span></td>
-                        <td class="text-end pe-4">
-                            <div class="d-flex justify-content-end gap-2">
-                                <a href="{{ route('admin.staff.edit', $staff->id) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-
-                                <form action="{{ route('admin.staff.destroy', $staff->id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        @empty
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
+            <h5 class="text-muted">No departments found.</h5>
+            <a href="{{ route('admin.departments.index') }}" class="btn btn-outline-primary mt-2">Manage Departments</a>
         </div>
-
+        @endforelse
     </div>
+
 </div>
+
+<style>
+    .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+</style>
 @endsection

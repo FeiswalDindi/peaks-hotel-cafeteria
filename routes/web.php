@@ -9,8 +9,11 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\OrderHistoryController;
+use App\Http\Controllers\Admin\ReportController; // <--- ADD THIS LINE
+use App\Http\Controllers\Admin\SettingsController; 
+use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\StaffController;
-use App\Http\Controllers\Admin\SettingsController; // Added for clarity
+// Added for clarity
 
 /*
 |--------------------------------------------------------------------------
@@ -107,5 +110,15 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     // Finance Report
     Route::get('admin/reports/daily', [AdminController::class, 'downloadReport'])->name('admin.reports.daily');
+
+Route::resource('admin/departments', DepartmentController::class, ['as' => 'admin']);
+
+ // Add this at the top!
+
+// Inside the admin middleware group:
+Route::resource('admin/staff', StaffController::class, ['as' => 'admin']);
+
+
+Route::get('admin/reports/daily', [ReportController::class, 'dailyFinancial'])->name('admin.reports.daily');
 
 });

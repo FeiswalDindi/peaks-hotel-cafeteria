@@ -18,6 +18,7 @@ class User extends Authenticatable
         'daily_allocation',
         'staff_number',
         'department',
+        'department_id',
     ];
 
     protected $hidden = [
@@ -60,5 +61,10 @@ public function hasRole($role)
         }
 
         return false;
+    }
+    // A user belongs to a department
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 }

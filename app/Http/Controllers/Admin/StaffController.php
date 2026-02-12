@@ -3,86 +3,108 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Department;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 
 class StaffController extends Controller
 {
-    public function index()
+    // Screen 1: The "Folders" View (Lists Departments)
+    public function index(Request $request)
     {
-        $staffMembers = User::whereNotNull('staff_number')->get();
-        return view('admin.staff.index', compact('staffMembers'));
+        $query = Department::withCount('staff');
+
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $departments = $query->get(); // Get all departments
+
+        return view('admin.staff.index', compact('departments'));
     }
 
-    public function create()
+    // Screen 2: The "Inside Folder" View (Lists Staff)
+    public function show($id)
     {
-        return view('admin.staff.create');
+        $department = Department::findOrFail($id);
+        $staffMembers = $department->staff()->latest()->get();
+
+        return view('admin.staff.show', compact('department', 'staffMembers'));
     }
 
-    public function store(Request $request)
+    // Add this to StaffController.php
+public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'staff_number' => 'required|string|unique:users',
-            'department' => 'required|string',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'department_id' => 'required|exists:departments,id',
             'daily_allocation' => 'required|numeric|min:0',
+            'staff_number' => 'nullable|string|max:50',
         ]);
 
+        // 1. Find the Department Name so we can save it to the old column too
+        $dept = Department::findOrFail($request->department_id);
+
+        // 2. Create the User with BOTH the ID and the Name
         User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'staff_number' => $request->staff_number,
-            'department' => $request->department,
+            'password' => bcrypt($request->password),
+            
+            // The New Way (Links to the folder)
+            'department_id' => $request->department_id, 
+            
+            // The Old Way (Shows the name in your database table)
+            'department' => $dept->name, 
+
             'daily_allocation' => $request->daily_allocation,
-            'wallet_balance' => 0,
-            'password' => Hash::make('password'), // Default password
+            'staff_number' => $request->staff_number,
         ]);
 
-        return redirect()->route('admin.staff.index')->with('success', 'Staff Member Created Successfully.');
+        return back()->with('success', 'New staff member added successfully!');
     }
 
-    // ✅ This allows the Edit Page to load
-    public function edit($id)
-    {
-        $staff = User::findOrFail($id);
-        return view('admin.staff.edit', compact('staff'));
-    }
 
-    // ✅ This saves the changes
-    public function update(Request $request, $id)
+public function update(Request $request, $id)
     {
-        $staff = User::findOrFail($id);
+        $user = User::findOrFail($id);
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,'.$staff->id,
-            'staff_number' => 'required|unique:users,staff_number,'.$staff->id,
-            'department' => 'required|string',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'department_id' => 'required|exists:departments,id',
             'daily_allocation' => 'required|numeric|min:0',
-            'password' => 'nullable|string|min:6',
+            'staff_number' => 'nullable|string|max:50',
         ]);
 
-        $staff->name = $request->name;
-        $staff->email = $request->email;
-        $staff->staff_number = $request->staff_number;
-        $staff->department = $request->department;
-        $staff->daily_allocation = $request->daily_allocation;
+        // Find department name for the old column
+        $dept = Department::findOrFail($request->department_id);
 
-        if ($request->filled('password')) {
-            $staff->password = Hash::make($request->password);
-        }
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'department_id' => $request->department_id,
+            'department' => $dept->name, // Keep both columns synced
+            'daily_allocation' => $request->daily_allocation,
+            'staff_number' => $request->staff_number,
+        ]);
 
-        $staff->save();
-
-        return redirect()->route('admin.staff.index')->with('success', 'Staff Details Updated Successfully!');
+        return back()->with('success', 'Staff details updated!');
     }
 
     public function destroy($id)
     {
-        $staff = User::findOrFail($id);
-        $staff->delete();
-        return redirect()->route('admin.staff.index')->with('success', 'Staff Member Deleted.');
+        $user = User::findOrFail($id);
+        
+        // 1. Safety Check: Does this user have orders?
+        if ($user->orders()->count() > 0) {
+            return back()->with('error', 'Cannot delete this staff member because they have past orders. (Database Security)');
+        }
+
+        $user->delete();
+        return back()->with('success', 'Staff member deleted successfully.');
     }
+
 }

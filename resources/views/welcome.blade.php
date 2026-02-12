@@ -122,6 +122,16 @@
             </a>
 
             @if(Auth::check())
+                <div class="d-none d-lg-flex align-items-center bg-light px-3 py-2 rounded-pill border shadow-sm">
+                    <i class="fas fa-user-circle text-primary me-2"></i>
+                    <span class="fw-bold text-dark" style="font-size: 0.85rem;">
+                        {{ Auth::user()->name }} 
+                        @if(Auth::user()->staff_number)
+                            <span class="badge bg-secondary ms-1">{{ Auth::user()->staff_number }}</span>
+                        @endif
+                    </span>
+                </div>
+
                 @if(isset($showWallet) && $showWallet)
                 <div class="d-none d-md-flex align-items-center bg-light px-3 py-2 rounded-pill border border-primary">
                     <i class="fas fa-wallet text-primary me-2"></i>
@@ -226,16 +236,19 @@
         </div>
 
 <div class="row g-4">
-    @forelse($featuredItems as $item)
+ @forelse($featuredItems as $item)
     <div class="col-lg-3 col-md-4 col-6">
         <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden; transition: 0.3s;">
             
-            <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-hamburger fa-3x text-muted opacity-50"></i>
+            <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                @if($item->image)
+                    <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                @else
+                    <i class="fas fa-hamburger fa-3x text-muted opacity-50"></i>
+                @endif
             </div>
             
             <div class="card-body position-relative d-flex flex-column">
-                
                 <span id="counter-{{ $item->id }}" 
                       class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle-x shadow-sm" 
                       style="display:none; transition: opacity 0.5s ease; z-index: 10; border-radius: 50px; padding: 5px 15px;">
@@ -262,9 +275,6 @@
         </div>
     </div>
     @empty
-    <div class="col-12 text-center py-5">
-        <h5 class="text-muted">No featured meals available today.</h5>
-    </div>
     @endforelse
 </div>
         

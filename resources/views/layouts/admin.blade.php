@@ -96,9 +96,33 @@ body {
                 <i class="fas fa-utensils me-2" style="width: 25px;"></i> Menu Items
             </a>
 
-            <a href="{{ route('admin.staff.index') }}" class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
-                <i class="fas fa-users-cog me-2" style="width: 25px;"></i> Staff Management
-            </a>
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#staffSubmenu" aria-expanded="false">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-users-cog me-2"></i>
+            <span>Staff Management</span>
+            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+        </div>
+    </a>
+    
+    <div class="collapse" id="staffSubmenu" style="background: rgba(0,0,0,0.1);">
+        <ul class="nav flex-column ps-3">
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.departments.index') }}">
+                    <i class="fas fa-building me-2"></i> Departments
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.staff.index') }}">
+                    <i class="fas fa-id-card me-2"></i> Staff Directory
+                </a>
+            </li>
+        </ul>
+    </div>
+</li>
 
             <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
                 <i class="fas fa-sliders-h me-2" style="width: 25px;"></i> Settings

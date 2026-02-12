@@ -2,68 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Daily Staff Consumption Report</title>
+    <title>Daily Staff Financial Report</title>
     <style>
-        body { font-family: sans-serif; padding: 40px; }
-        .header { text-align: center; margin-bottom: 40px; }
-        .logo { font-size: 24px; font-weight: bold; color: #192C57; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .total-row { font-weight: bold; font-size: 1.2em; background-color: #e8e8e8; }
-        .footer { margin-top: 50px; display: flex; justify-content: space-between; }
-        .signature-box { border-top: 1px solid #000; width: 200px; padding-top: 10px; }
+        body { font-family: 'Times New Roman', serif; font-size: 11pt; margin: 0; padding: 20px; color: #000; line-height: 1.4; }
+        
+        /* A4 Page Setup */
+        @page { size: A4; margin: 1cm; }
+        
+        /* Header */
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .logo { font-size: 18pt; font-weight: bold; text-transform: uppercase; }
+        .sub-header { font-size: 12pt; font-style: italic; }
+        
+        /* The Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; word-wrap: break-word; }
+        
+        /* Column Widths */
+        .col-sn { width: 35px; text-align: center; }
+        .col-staff-no { width: 80px; }
+        .col-name { width: auto; }
+        .col-money { width: 90px; text-align: right; }
+        .col-sign { width: 110px; }
+        
+        /* Department Header Row */
+        .dept-header { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; padding: 10px; }
+        
+        /* Buttons (Hide when printing) */
+        .no-print { position: fixed; top: 20px; right: 20px; background: #fff; padding: 10px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.1); z-index: 1000; }
         @media print { .no-print { display: none; } }
+
+        /* Signature Section */
+        .sig-container { margin-top: 50px; display: table; width: 100%; }
+        .sig-box { display: table-cell; width: 33%; text-align: center; padding: 0 15px; }
+        .sig-line { border-top: 1px solid #000; margin-top: 40px; padding-top: 5px; font-weight: bold; font-size: 10pt; }
     </style>
 </head>
 <body>
 
-    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Download / Print PDF</button>
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 10px 20px; font-weight: bold; cursor: pointer; background: #192C57; color: white; border: none; border-radius: 5px;">
+            <i class="fas fa-print"></i> 🖨️ PRINT REPORT
+        </button>
     </div>
 
     <div class="header">
-        <div class="logo">PEAKS HOTEL CAFETERIA</div>
-        <h3>KCA University - Staff Consumption Report</h3>
-        <p>Date: {{ now()->format('d F Y') }}</p>
+        <div class="logo">KCA University Cafeteria</div>
+        <div class="sub-header">Daily Staff Financial Report - {{ $today->format('l, d F Y') }}</div>
     </div>
 
     <table>
         <thead>
-            <tr>
-                <th>#</th>
-                <th>Staff Name</th>
-                <th>Staff ID</th>
-                <th>Department</th>
-                <th style="text-align: right;">Wallet Amount (KES)</th>
+            <tr style="background: #eee;">
+                <th class="col-sn">S/No.</th>
+                <th class="col-staff-no">Staff No.</th>
+                <th class="col-name">Employee Name</th>
+                <th class="col-money">Allocation</th>
+                <th class="col-money">Used Today</th>
+                <th class="col-money">Balance</th>
+                <th class="col-sign">Sign / Remark</th>
             </tr>
         </thead>
+        
         <tbody>
-            @foreach($reportData as $data)
-            <tr>
-                <td>{{ $loop->iteration }}</td>
-                <td>{{ $data['name'] }}</td>
-                <td>{{ $data['staff_number'] }}</td>
-                <td>{{ $data['department'] }}</td>
-                <td style="text-align: right;">{{ number_format($data['total_spent'], 2) }}</td>
-            </tr>
+            @php $globalCount = 1; @endphp
+            
+            @foreach($departments as $dept)
+                @if($dept->staff->count() > 0)
+                    <tr>
+                        <td colspan="7" class="dept-header">{{ $dept->name }}</td>
+                    </tr>
+
+                    @foreach($dept->staff as $staff)
+                        @php 
+                            $used = $staff->orders_sum_total_amount ?? 0;
+                            $balance = $staff->daily_allocation - $used;
+                        @endphp
+                        <tr>
+                            <td class="col-sn">{{ $globalCount++ }}</td>
+                            <td>{{ $staff->staff_number ?? '-' }}</td>
+                            <td>{{ $staff->name }}</td>
+                            <td class="col-money">{{ number_format($staff->daily_allocation) }}</td>
+                            <td class="col-money" style="{{ $used > 0 ? 'font-weight:bold;' : 'color:#ccc;' }}">
+                                {{ $used > 0 ? number_format($used) : '-' }}
+                            </td>
+                            <td class="col-money">{{ number_format($balance) }}</td>
+                            <td></td> 
+                        </tr>
+                    @endforeach
+                @endif
             @endforeach
-            <tr class="total-row">
-                <td colspan="4" style="text-align: right;">TOTAL CLAIM:</td>
-                <td style="text-align: right;">KES {{ number_format($totalClaim, 2) }}</td>
-            </tr>
         </tbody>
+
+        <tfoot style="background-color: #f8f9fa; font-weight: bold;">
+            <tr>
+                <td colspan="4" style="text-align: right; padding: 10px;">GRAND TOTAL EXPENDITURE FOR TODAY:</td>
+                <td class="col-money" style="border-bottom: 3px double #000; font-size: 13pt;">
+                    KES {{ number_format($departments->sum(fn($d) => $d->staff->sum('orders_sum_total_amount'))) }}
+                </td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
     </table>
 
-    <div class="footer">
-        <div>
-            <p>Prepared By (Peaks Hotel):</p>
-            <div class="signature-box">Signature & Date</div>
+    <div class="sig-container">
+        <div class="sig-box">
+            <div class="sig-line">CAFETERIA ADMINISTRATOR</div>
+            <div style="font-size: 9pt;">Signature & Date</div>
         </div>
-        <div>
-            <p>Received By (KCA Finance):</p>
-            <div class="signature-box">Signature & Date</div>
+        <div class="sig-box">
+            <div class="sig-line">FINANCE DEPARTMENT</div>
+            <div style="font-size: 9pt;">Stamp & Date</div>
         </div>
+        <div class="sig-box">
+            <div class="sig-line">INTERNAL AUDIT</div>
+            <div style="font-size: 9pt;">Review Signature</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; font-size: 9pt; border-top: 1px dashed #ccc; padding-top: 10px;">
+        <p style="margin: 2px 0;"><strong>Generated By:</strong> {{ Auth::user()->name }}</p>
+        <p style="margin: 2px 0;"><strong>System Date:</strong> {{ now()->format('d-m-Y H:i:s') }}</p>
     </div>
 
 </body>
