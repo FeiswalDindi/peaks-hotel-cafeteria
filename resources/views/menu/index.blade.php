@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Full Menu | Peaks Hotel Cafeteria</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
         .hero-small {
@@ -25,10 +29,6 @@
         .price-tag {
             background-color: #CEAA0C; color: #192C57; font-weight: bold; padding: 5px 15px; border-radius: 20px;
         }
-        .btn-add {
-            background-color: #192C57; color: white; border-radius: 50px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: none;
-        }
-        .btn-add:hover { background-color: #CEAA0C; color: #192C57; transform: rotate(90deg); }
         
         /* Toast Notification */
         #toast-box {
@@ -51,9 +51,12 @@
                 <a href="{{ route('menu.all') }}" class="text-white text-decoration-none fw-bold border-bottom border-warning">Menu</a>
                 <a href="{{ route('cart.index') }}" class="text-white text-decoration-none position-relative">
                     <i class="fas fa-shopping-cart"></i>
+                    @php $cartCount = count(session('cart', [])); @endphp
+                    @if($cartCount > 0)
                     <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                        {{ count(session('cart', [])) }}
+                        {{ $cartCount }}
                     </span>
+                    @endif
                 </a>
             </div>
         </div>
@@ -86,23 +89,37 @@
         <div class="row g-4">
             @forelse($menuItems as $item)
             <div class="col-md-3 col-6">
-                <div class="card menu-card h-100">
+                <div class="card menu-card h-100 position-relative border-0 shadow-sm">
+                    
+                    <span id="counter-{{ $item->id }}" 
+                          class="badge bg-warning text-dark position-absolute top-50 start-50 translate-middle shadow-lg" 
+                          style="display:none; transition: opacity 0.5s ease; z-index: 20; font-size: 1.5rem; border-radius: 50px; padding: 10px 20px;">
+                    </span>
+
                     <div style="height: 150px; background-color: #eee; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-utensils fa-3x text-muted"></i>
+                        @if($item->image)
+                            <img src="{{ asset('storage/'.$item->image) }}" class="w-100 h-100 object-fit-cover">
+                        @else
+                            <i class="fas fa-utensils fa-3x text-muted opacity-50"></i>
+                        @endif
                     </div>
-                    <div class="card-body">
+
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h6 class="fw-bold mb-0 text-dark">{{ $item->name }}</h6>
-                            <span class="price-tag small">KES {{ $item->price }}</span>
+                            <span class="price-tag small badge bg-light text-dark border">KES {{ number_format($item->price) }}</span>
                         </div>
+                        
                         <p class="small text-muted mb-3">{{ Str::limit($item->description, 40) }}</p>
                         
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
                             <small class="text-muted fw-bold">
-    {{ $item->category->name ?? 'General' }}
-</small>
-                            <button onclick="addToCart({{ $item->id }})" class="btn-add shadow-sm">
-                                <i class="fas fa-plus"></i>
+                                {{ $item->category->name ?? 'General' }}
+                            </small>
+                            
+                            <button onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-primary rounded-circle shadow-sm" 
+                                    style="width: 35px; height: 35px; background-color: #192C57; border: none; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-plus text-white"></i>
                             </button>
                         </div>
                     </div>
@@ -125,26 +142,60 @@
     @include('layouts.footer')
 
     <script>
+        let fadeTimers = {};
+
         function addToCart(id) {
-            // Prevent reload, use Fetch API
             fetch('/add-to-cart/' + id, {
-                method: 'GET',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
             })
-            .then(response => {
-                // Show Toast
-                const toast = document.getElementById('toast-box');
-                toast.style.display = 'block';
-                setTimeout(() => { toast.style.display = 'none'; }, 2000);
-                
-                // Update Badge (Simulated for speed, refreshes on next load or you can return JSON to be exact)
-                const badge = document.getElementById('cart-badge');
-                let current = parseInt(badge.innerText);
-                badge.innerText = current + 1;
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 1. Show Toast
+                    const toast = document.getElementById('toast-box');
+                    if (toast) {
+                        toast.style.display = 'block';
+                        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+                    }
+
+                    // 2. Update Navbar Badge
+                    let badge = document.querySelector('.badge.rounded-pill.bg-danger');
+                    if (!badge) { 
+                         // Check multiple possible locations for the cart icon
+                        const cartLink = document.querySelector('a[href*="cart"]');
+                        if(cartLink) {
+                            // If user had 0 items, the span might be missing. We create it.
+                             cartLink.insertAdjacentHTML('beforeend', 
+                                `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">${data.cart_count}</span>`
+                            );
+                        }
+                    } else { 
+                        badge.innerText = data.cart_count; 
+                    }
+
+                    // 3. Animate the Card Badge (x1, x2)
+                    const itemCounter = document.getElementById('counter-' + id);
+                    if (itemCounter) {
+                        if (fadeTimers[id]) clearTimeout(fadeTimers[id]);
+
+                        itemCounter.innerText = "x" + data.item_quantity;
+                        itemCounter.style.display = 'block';
+                        
+                        // Small delay to allow 'display:block' to apply before fading
+                        setTimeout(() => { itemCounter.style.opacity = '1'; }, 10);
+
+                        fadeTimers[id] = setTimeout(() => {
+                            itemCounter.style.opacity = '0';
+                            setTimeout(() => { itemCounter.style.display = 'none'; }, 500);
+                        }, 1000);
+                    }
+                }
             })
             .catch(error => console.error('Error:', error));
         }
     </script>
-
 </body>
 </html>

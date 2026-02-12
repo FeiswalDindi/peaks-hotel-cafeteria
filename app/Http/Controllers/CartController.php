@@ -21,27 +21,37 @@ class CartController extends Controller
     }
 
     // 2. Add Item to Cart
-    public function addToCart($id)
-    {
-        $menu = Menu::findOrFail($id);
-        $cart = session()->get('cart', []);
+public function addToCart($id)
+{
+    $menu = \App\Models\Menu::findOrFail($id);
+    $cart = session()->get('cart', []);
 
-        // Logic: If item exists, add +1. If not, add it new.
-        if(isset($cart[$id])) {
-            $cart[$id]['quantity']++;
-        } else {
-            $cart[$id] = [
-                "name" => $menu->name,
-                "quantity" => 1,
-                "price" => $menu->price,
-                "image" => $menu->image
-            ];
-        }
-
-        session()->put('cart', $cart);
-        return redirect()->back()->with('success', 'Food added to tray!');
+    // Check if item is already in cart
+    if(isset($cart[$id])) {
+        $cart[$id]['quantity']++;
+    } else {
+        // THIS WAS THE MISSING PART: We need to save the 'image' here
+        $cart[$id] = [
+            "name" => $menu->name,
+            "quantity" => 1,
+            "price" => $menu->price,
+            "image" => $menu->image // ✅ Fixing the crash
+        ];
     }
 
+    session()->put('cart', $cart);
+
+    // If the request comes from JavaScript (AJAX), return JSON
+    if (request()->ajax()) {
+        return response()->json([
+            'success' => true,
+            'cart_count' => count($cart),       // Total items in cart
+            'item_quantity' => $cart[$id]['quantity'] // Specific count for this item (for the animation)
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Product added to cart successfully!');
+}
     // 3. Remove Item
     public function remove(Request $request)
     {

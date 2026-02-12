@@ -27,6 +27,7 @@
         <div class="row">
             <div class="col-md-8">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="table-responsive">.
                     <table class="table mb-0 align-middle">
                         <thead class="bg-light">
                             <tr>
@@ -44,7 +45,8 @@
                                 <tr>
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
-                                            <img src="{{ $details['image'] ? asset('storage/'.$details['image']) : 'https://via.placeholder.com/50' }}" width="50" height="50" class="rounded me-3">
+                                        <img src="{{ !empty($details['image']) ? asset('storage/'.$details['image']) : 'https://via.placeholder.com/50' }}" 
+     width="50" height="50" class="rounded me-3" alt="Item">
                                             <span class="fw-bold">{{ $details['name'] }}</span>
                                         </div>
                                     </td>
@@ -67,6 +69,7 @@
                         </tbody>
                     </table>
                 </div>
+</div>
             </div>
 
             <div class="col-md-4">

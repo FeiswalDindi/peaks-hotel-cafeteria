@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peaks Hotel | KCA University</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -224,28 +225,48 @@
             </a>
         </div>
 
-        <div class="row g-4">
-            @foreach($featuredItems as $item)
-            <div class="col-md-3 col-6">
-                <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
-                    <div style="height: 140px; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-hamburger fa-3x text-muted opacity-50"></i>
-                    </div>
+<div class="row g-4">
+    @forelse($featuredItems as $item)
+    <div class="col-lg-3 col-md-4 col-6">
+        <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden; transition: 0.3s;">
+            
+            <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-hamburger fa-3x text-muted opacity-50"></i>
+            </div>
+            
+            <div class="card-body position-relative d-flex flex-column">
+                
+                <span id="counter-{{ $item->id }}" 
+                      class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle-x shadow-sm" 
+                      style="display:none; transition: opacity 0.5s ease; z-index: 10; border-radius: 50px; padding: 5px 15px;">
+                </span>
+
+                <h6 class="fw-bold mb-1">{{ $item->name }}</h6>
+                
+                <p class="text-muted small mb-3">
+                    {{ Str::limit($item->description, 35) }}
+                </p>
+                
+                <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <span class="fw-bold" style="color: #192C57;">
+                        KES {{ number_format($item->price, 0) }}
+                    </span>
                     
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-1">{{ $item->name }}</h6>
-                        <p class="text-muted small mb-2">{{ Str::limit($item->description, 30) }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-primary fw-bold">KES {{ $item->price }}</span>
-                            <button onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-dark rounded-circle" style="width: 35px; height: 35px;">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
+                    <button onclick="addToCart({{ $item->id }})" 
+                            class="btn btn-sm btn-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
+                            style="width: 35px; height: 35px;">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
             </div>
-            @endforeach
         </div>
+    </div>
+    @empty
+    <div class="col-12 text-center py-5">
+        <h5 class="text-muted">No featured meals available today.</h5>
+    </div>
+    @endforelse
+</div>
         
         <div class="text-center mt-5">
             <a href="{{ route('menu.all') }}" class="btn btn-primary px-5 py-3 rounded-pill fw-bold shadow" style="background-color: #192C57;">
@@ -258,30 +279,25 @@
         <i class="fas fa-check-circle me-2"></i> Added to Cart!
     </div>
 
-    <script>
-        function addToCart(id) {
-            fetch('/add-to-cart/' + id).then(() => {
-                document.getElementById('toast-box').style.display = 'block';
-                setTimeout(() => { document.getElementById('toast-box').style.display = 'none'; }, 2000);
-            });
-        }
-    </script>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // --- 1. Flipping Text Logic ---
     const phrases = ["Everyone", "Staff", "Students", "Visitors", "Parents"];
     let i = 0;
     const el = document.getElementById('flipping-text');
 
-    setInterval(() => {
-        el.style.opacity = 0;
-        setTimeout(() => {
-            i = (i + 1) % phrases.length;
-            el.innerText = phrases[i];
-            el.style.opacity = 1;
-        }, 500);
-    }, 2500);
+    if (el) { // Safety check
+        setInterval(() => {
+            el.style.opacity = 0;
+            setTimeout(() => {
+                i = (i + 1) % phrases.length;
+                el.innerText = phrases[i];
+                el.style.opacity = 1;
+            }, 500);
+        }, 2500);
+    }
 
+    // --- 2. Logout SweetAlert ---
     @if(session('status') == 'logged-out')
         Swal.fire({
             title: 'Logged Out!',
@@ -290,6 +306,62 @@
             confirmButtonColor: '#192C57'
         });
     @endif
+
+    // --- 3. Live Add-To-Cart with Animation ---
+    let fadeTimers = {}; // Store timers to handle rapid clicks
+
+    function addToCart(id) {
+        fetch('/add-to-cart/' + id, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // A. Show the Bottom Toast
+                const toast = document.getElementById('toast-box');
+                if (toast) {
+                    toast.style.display = 'block';
+                    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+                }
+
+                // B. Update Navbar Badge (Live Count)
+                const badge = document.querySelector('.badge.rounded-pill.bg-danger');
+                if (badge) {
+                    badge.innerText = data.cart_count;
+                } else {
+                    // If badge didn't exist, create it dynamically
+                    const cartBtn = document.querySelector('.btn-light.position-relative');
+                    if (cartBtn) {
+                        const newBadge = `<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">${data.cart_count}</span>`;
+                        cartBtn.insertAdjacentHTML('beforeend', newBadge);
+                    }
+                }
+
+                // C. The Cool Fading Animation (x1, x2 on the card)
+                const itemCounter = document.getElementById('counter-' + id);
+                if (itemCounter) {
+                    // Reset timer if clicked quickly
+                    if (fadeTimers[id]) clearTimeout(fadeTimers[id]);
+
+                    itemCounter.innerText = 'x' + data.item_quantity;
+                    itemCounter.style.display = 'block';
+                    
+                    // Small delay to ensure browser sees "block" before fading opacity
+                    setTimeout(() => { itemCounter.style.opacity = '1'; }, 10);
+
+                    // Fade out after 1.5 seconds
+                    fadeTimers[id] = setTimeout(() => {
+                        itemCounter.style.opacity = '0';
+                        setTimeout(() => { itemCounter.style.display = 'none'; }, 500);
+                    }, 1500);
+                }
+            }
+        })
+        .catch(error => console.error('Error updating cart:', error));
+    }
 </script>
 @include('layouts.footer')
 </body>

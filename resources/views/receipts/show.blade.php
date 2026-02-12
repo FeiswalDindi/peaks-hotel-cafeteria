@@ -6,6 +6,8 @@
     <title>Receipt #{{ $order->id }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         body { background-color: #e0e0e0; font-family: 'Courier New', Courier, monospace; }
         .receipt-container {
@@ -19,8 +21,8 @@
         .status-badge {
             text-align: center; padding: 10px; margin-bottom: 20px; font-weight: bold; color: white;
         }
-        .bg-pending { background-color: #dc3545; } /* Red for pending */
-        .bg-paid { background-color: #198754; } /* Green for paid */
+        .bg-pending { background-color: #dc3545; } 
+        .bg-paid { background-color: #198754; } 
         
         .blur-content {
             filter: blur(4px);
@@ -42,25 +44,25 @@
 </head>
 <body>
 
-    <div class="receipt-container">
+    <div class="receipt-container" id="receipt-box">
         
         @if($order->status == 'pending')
-            <div class="status-badge bg-pending">
+            <div class="status-badge bg-pending" data-html2canvas-ignore="true">
                 <i class="fas fa-clock me-2"></i> PAYMENT PENDING
             </div>
             
-            <div class="text-center mb-3">
+            <div class="text-center mb-3" data-html2canvas-ignore="true">
                 <small class="text-muted">Check your phone for the M-Pesa PIN.</small>
                 <div class="spinner-border spinner-border-sm text-danger ms-2" role="status"></div>
             </div>
 
-            <div class="locked-overlay rounded">
+            <div class="locked-overlay rounded" data-html2canvas-ignore="true">
                 <i class="fas fa-lock fa-3x text-danger mb-3"></i>
                 <h5 class="fw-bold text-danger">RECEIPT LOCKED</h5>
                 <p class="small text-muted mb-0">Complete payment to download.</p>
-             <a href="{{ route('receipt.check', $order->id) }}" class="btn btn-sm btn-outline-dark mt-3">
-    <i class="fas fa-sync-alt me-1"></i> Check Status
-</a>
+                <a href="{{ route('receipt.check', $order->id) }}" class="btn btn-sm btn-outline-dark mt-3">
+                    <i class="fas fa-sync-alt me-1"></i> Check Status
+                </a>
             </div>
         @else
             <div class="status-badge bg-paid">
@@ -120,9 +122,9 @@
         </div>
         
         @if($order->status == 'paid')
-        <div class="mt-3">
-            <button onclick="window.print()" class="btn btn-dark w-100 fw-bold py-2">
-                <i class="fas fa-download me-2"></i> DOWNLOAD RECEIPT
+        <div class="mt-3" data-html2canvas-ignore="true">
+            <button onclick="downloadPDF()" class="btn btn-dark w-100 fw-bold py-2">
+                <i class="fas fa-file-pdf me-2"></i> DOWNLOAD RECEIPT
             </button>
             <a href="{{ route('home') }}" class="btn btn-link w-100 text-muted btn-sm mt-2 text-decoration-none">
                 Start New Order
@@ -131,6 +133,25 @@
         @endif
 
     </div>
+
+    <script>
+        function downloadPDF() {
+            // 1. Select the element we want to print
+            const element = document.getElementById('receipt-box');
+            
+            // 2. Configure the PDF settings
+            const opt = {
+                margin:       10,
+                filename:     'KCA_Receipt_{{ $order->id }}.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 }, // Higher scale = sharper text
+                jsPDF:        { unit: 'mm', format: 'a6', orientation: 'portrait' } // A6 is receipt size
+            };
+
+            // 3. Generate and Save
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
 
 </body>
 </html>

@@ -19,6 +19,7 @@
             color: #fff;
             padding-top: 20px;
             z-index: 1000;
+            transition: all 0.3s;
         }
         .sidebar-brand {
             padding: 15px 25px;
@@ -44,6 +45,7 @@
         .main-content {
             margin-left: 260px;
             padding: 30px;
+            transition: all 0.3s;
         }
         .header {
             background: #fff;
@@ -53,6 +55,29 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        /* Emergency fix to prevent the "Dark Ghost" screen */
+
+
+        /* FORCE HIDE ALL OVERLAYS AND UNLOCK SCREEN */
+.modal-backdrop {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+body {
+    overflow: auto !important;
+    padding-right: 0 !important;
+    pointer-events: auto !important;
+}
+
+/* This targets the specific "frozen" state seen in your screenshot */
+.modal-open {
+    overflow: auto !important;
+}
+
+
     </style>
 </head>
 <body>
@@ -83,12 +108,14 @@
     <i class="fas fa-file-invoice-dollar me-2" style="width: 25px;"></i> Daily Staff Financial Report
 </a>
 
-            <form method="POST" action="{{ route('logout') }}" class="mt-5">
-                @csrf
-                <button type="submit" class="nav-link w-100 text-start bg-transparent border-0 text-danger">
-                    <i class="fas fa-sign-out-alt me-2" style="width: 25px;"></i> Logout
-                </button>
-            </form>
+<form method="POST" action="{{ route('logout') }}" id="admin-logout-form" class="mt-5">
+    @csrf
+    <a href="#" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();" 
+       class="nav-link w-100 text-start bg-transparent border-0 text-danger" 
+       style="cursor: pointer;">
+        <i class="fas fa-sign-out-alt me-2" style="width: 25px;"></i> Logout
+    </a>
+</form>
         </nav>
     </div>
 
@@ -111,5 +138,20 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Remove the dark background if it's stuck
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 0) {
+            backdrops.forEach(backdrop => backdrop.remove());
+            console.log("Stuck backdrop removed!");
+        }
+
+        // 2. Unlock the scrollbar
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = 'auto'; 
+    });
+</script>
 </body>
 </html>
