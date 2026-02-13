@@ -49,7 +49,7 @@
             <div class="d-flex gap-3">
                 <a href="{{ route('home') }}" class="text-white text-decoration-none">Home</a>
                 <a href="{{ route('menu.all') }}" class="text-white text-decoration-none fw-bold border-bottom border-warning">Menu</a>
-                <a href="{{ route('cart.index') }}" class="text-white text-decoration-none position-relative">
+<a href="{{ route('cart.index') }}" id="nav-cart-btn" class="text-white text-decoration-none position-relative">
                     <i class="fas fa-shopping-cart"></i>
                     @php $cartCount = count(session('cart', [])); @endphp
                     @if($cartCount > 0)
@@ -142,60 +142,92 @@
     @include('layouts.footer')
 
     <script>
-        let fadeTimers = {};
-
-        function addToCart(id) {
-            fetch('/add-to-cart/' + id, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+ let fadeTimers = {};
+    function addToCart(id) {
+        fetch('/add-to-cart/' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }})
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 🌟 NEW: Smart Alert Toast Logic
+                const toast = document.getElementById('toast-box');
+                if (toast) { 
+                    if (data.exceeds_allowance) {
+                        // Warn them in RED
+                        toast.style.background = '#dc3545'; // Danger Red
+                        toast.style.color = '#fff';
+                        toast.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Exceeds Wallet! Excess will be via M-Pesa.';
+                    } else {
+                        // Normal Success in Navy Blue
+                        toast.style.background = '#192C57'; // KCA Navy
+                        toast.style.color = '#CEAA0C'; // KCA Gold
+                        toast.innerHTML = '<i class="fas fa-check-circle me-2"></i> Added to Cart!';
+                    }
+                    
+                    toast.style.display = 'block'; 
+                    // Leave the warning on screen slightly longer (3.5 seconds)
+                    setTimeout(() => { toast.style.display = 'none'; }, 3500); 
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 1. Show Toast
-                    const toast = document.getElementById('toast-box');
-                    if (toast) {
-                        toast.style.display = 'block';
-                        setTimeout(() => { toast.style.display = 'none'; }, 2000);
-                    }
 
-                    // 2. Update Navbar Badge
-                    let badge = document.querySelector('.badge.rounded-pill.bg-danger');
-                    if (!badge) { 
-                         // Check multiple possible locations for the cart icon
-                        const cartLink = document.querySelector('a[href*="cart"]');
-                        if(cartLink) {
-                            // If user had 0 items, the span might be missing. We create it.
-                             cartLink.insertAdjacentHTML('beforeend', 
-                                `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">${data.cart_count}</span>`
-                            );
-                        }
-                    } else { 
-                        badge.innerText = data.cart_count; 
-                    }
+                const badge = document.getElementById('cart-badge');
+                if (badge) { 
+                    badge.innerText = data.cart_count; 
+                } else { 
+                    const cartBtn = document.getElementById('nav-cart-btn'); 
+                    if (cartBtn) { 
+                        cartBtn.insertAdjacentHTML('beforeend', `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">${data.cart_count}</span>`); 
+                    } 
+                }
+                const itemCounter = document.getElementById('counter-' + id);
+                if (itemCounter) {
+                    if (fadeTimers[id]) clearTimeout(fadeTimers[id]);
+                    itemCounter.innerText = 'x' + data.item_quantity; itemCounter.style.display = 'block';
+                    setTimeout(() => { itemCounter.style.opacity = '1'; }, 10);
+                    fadeTimers[id] = setTimeout(() => { itemCounter.style.opacity = '0'; setTimeout(() => { itemCounter.style.display = 'none'; }, 500); }, 1500);
+                }
+            }
+        });
+    }
 
-                    // 3. Animate the Card Badge (x1, x2)
-                    const itemCounter = document.getElementById('counter-' + id);
-                    if (itemCounter) {
-                        if (fadeTimers[id]) clearTimeout(fadeTimers[id]);
+        document.addEventListener('DOMContentLoaded', function() {
+        // Find the search input field
+        const searchInput = document.querySelector('input[name="search"]'); 
+        
+        if (searchInput) {
+            // Stop the form from reloading the page when typing
+            const form = searchInput.closest('form');
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault(); 
+                });
+            }
 
-                        itemCounter.innerText = "x" + data.item_quantity;
-                        itemCounter.style.display = 'block';
+            // The Instant Filter Logic
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const menuCards = document.querySelectorAll('.card'); // Assuming your food items are in .card
+
+                menuCards.forEach(card => {
+                    // Find the title element inside the card (usually an h6 or h5)
+                    const titleElement = card.querySelector('h6') || card.querySelector('.card-title');
+                    
+                    if (titleElement) {
+                        const title = titleElement.innerText.toLowerCase();
                         
-                        // Small delay to allow 'display:block' to apply before fading
-                        setTimeout(() => { itemCounter.style.opacity = '1'; }, 10);
-
-                        fadeTimers[id] = setTimeout(() => {
-                            itemCounter.style.opacity = '0';
-                            setTimeout(() => { itemCounter.style.display = 'none'; }, 500);
-                        }, 1000);
+                        // Find the grid column wrapper (e.g., col-lg-3, col-6) to hide the whole block
+                        const colWrapper = card.closest('[class*="col-"]'); 
+                        
+                        if (title.includes(searchTerm)) {
+                            if(colWrapper) colWrapper.style.display = '';
+                            else card.style.display = '';
+                        } else {
+                            if(colWrapper) colWrapper.style.display = 'none';
+                            else card.style.display = 'none';
+                        }
                     }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                });
+            });
         }
+    });
     </script>
 </body>
 </html>

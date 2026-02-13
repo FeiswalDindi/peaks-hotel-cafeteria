@@ -19,4 +19,9 @@ class Department extends Model
         // Since only staff usually belong to departments, this is safe!
         return $this->hasMany(User::class);
     }
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
 }

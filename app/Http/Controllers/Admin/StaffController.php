@@ -10,27 +10,47 @@ use Illuminate\Http\Request;
 class StaffController extends Controller
 {
     // Screen 1: The "Folders" View (Lists Departments)
-    public function index(Request $request)
-    {
-        $query = Department::withCount('staff');
+public function index(Request $request)
+{
+    $search = $request->get('search');
 
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+    // Get departments for the cards
+    $departments = \App\Models\Department::withCount('users as staff_count')->get();
 
-        $departments = $query->get(); // Get all departments
-
-        return view('admin.staff.index', compact('departments'));
+    // 🌟 THE FIX: Get the staff members if a search/department is selected
+    $users = null;
+    if ($search) {
+        $users = \App\Models\User::whereHas('department', function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%");
+        })->orWhere('name', 'like', "%{$search}%")->get();
     }
+
+    return view('admin.staff.index', compact('departments', 'users'));
+}
 
     // Screen 2: The "Inside Folder" View (Lists Staff)
-    public function show($id)
-    {
-        $department = Department::findOrFail($id);
-        $staffMembers = $department->staff()->latest()->get();
+public function show($id)
+{
+    $staff = \App\Models\User::with(['orders.items', 'department'])->findOrFail($id);
 
-        return view('admin.staff.show', compact('department', 'staffMembers'));
-    }
+    // 🌟 TREND 1: Most Ordered Item
+    $favoriteItem = \DB::table('order_items')
+        ->join('orders', 'order_items.order_id', '=', 'orders.id')
+        ->select('menu_name', \DB::raw('count(*) as total'))
+        ->where('orders.user_id', $id)
+        ->groupBy('menu_name')
+        ->orderByDesc('total')
+        ->first();
+
+    // 🌟 TREND 2: Lifetime Spending
+    $totalSpent = $staff->orders()->sum('total_amount');
+    
+    // 🌟 TREND 3: Wallet vs M-Pesa Usage
+    $walletTotal = $staff->orders()->sum('wallet_paid');
+    $mpesaTotal = $staff->orders()->sum('mpesa_paid');
+
+    return view('admin.staff.show', compact('staff', 'favoriteItem', 'totalSpent', 'walletTotal', 'mpesaTotal'));
+}
 
     // Add this to StaffController.php
 public function store(Request $request)
@@ -106,5 +126,13 @@ public function update(Request $request, $id)
         $user->delete();
         return back()->with('success', 'Staff member deleted successfully.');
     }
+
+    public function department($id)
+{
+    // Fetch the department and all its associated staff
+    $department = \App\Models\Department::with('users')->findOrFail($id);
+    
+    return view('admin.staff.department', compact('department'));
+}
 
 }

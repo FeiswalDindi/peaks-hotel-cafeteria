@@ -11,20 +11,24 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    public function dailyFinancial()
+ public function dailyFinancial(\Illuminate\Http\Request $request)
     {
-        // 1. Get Today's Date
-        $today = Carbon::today();
+        // 1. Get the requested date, or default to Today
+        $dateString = $request->input('date', now()->toDateString());
+        $selectedDate = \Carbon\Carbon::parse($dateString);
 
-        // 2. Get Departments with their Staff
-        // We also load the 'orders' for today to calculate spending
-        $departments = Department::with(['staff' => function($query) use ($today) {
-            $query->withSum(['orders' => function($q) use ($today) {
-                $q->whereDate('created_at', $today)
-                  ->where('status', 'paid'); // Only count paid orders
-            }], 'total_amount');
-        }])->orderBy('name')->get();
+        // 2. Fetch Departments & Staff, but ONLY sum up the 'wallet_paid' for the selected date!
+        $departments = \App\Models\Department::with(['staff' => function($query) use ($selectedDate) {
+            $query->withSum(['orders' => function($q) use ($selectedDate) {
+                // Only count orders from the chosen date where wallet was used
+                $q->whereDate('created_at', $selectedDate)
+                  ->where('status', '!=', 'cancelled'); // Don't count cancelled orders!
+            }], 'wallet_paid'); 
+        }])->get();
 
-        return view('admin.reports.daily', compact('departments', 'today'));
+        return view('admin.reports.daily', [
+            'departments' => $departments,
+            'today' => $selectedDate // Pass the chosen date to the view
+        ]);
     }
 }

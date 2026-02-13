@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ReportController; // <--- ADD THIS LINE
 use App\Http\Controllers\Admin\SettingsController; 
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\FeedbackController;
 // Added for clarity
 
 /*
@@ -26,6 +27,7 @@ Route::get('/', [PublicMenuController::class, 'index'])->name('home');
 Route::get('cart', [CartController::class, 'index'])->name('cart.index');
 Route::get('add-to-cart/{id}', [CartController::class, 'addToCart'])->name('cart.add');
 Route::delete('remove-from-cart', [CartController::class, 'remove'])->name('cart.remove');
+Route::patch('update-cart', [CartController::class, 'update'])->name('cart.update');
 
 // Receipt & Payment Verification
 Route::get('receipt/{id}', [ReceiptController::class, 'show'])->name('receipt.show');
@@ -43,6 +45,12 @@ Route::get('/menu', [PublicMenuController::class, 'all'])->name('menu.all');
 Route::get('checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::post('checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
 
+// Live Status Checker
+Route::get('/order/{id}/status', [\App\Http\Controllers\CheckoutController::class, 'checkStatus'])->name('order.status');
+
+// Cancel Order
+Route::post('/order/{id}/cancel', [\App\Http\Controllers\CheckoutController::class, 'cancelOrder'])->name('order.cancel');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +64,7 @@ Route::middleware('auth')->group(function () {
     
     // History Route
     Route::get('/my-orders', [OrderHistoryController::class, 'index'])->name('orders.index');
+Route::post('/feedback/submit', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.submit');
 });
 
 require __DIR__.'/auth.php';
@@ -103,6 +112,15 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         'update'  => 'admin.staff.update', // ✅ Added
         'destroy' => 'admin.staff.destroy',
     ]);
+
+// Inside the Admin middleware group...
+Route::get('admin/feedback', [\App\Http\Controllers\FeedbackController::class, 'index'])->name('admin.feedback.index');
+Route::post('admin/feedback/read-all', [FeedbackController::class, 'readAll'])->name('admin.feedback.read-all');
+Route::get('admin/orders', [App\Http\Controllers\Admin\OrderManagementController::class, 'index'])->name('admin.orders.index');
+Route::patch('admin/orders/{id}/status', [App\Http\Controllers\Admin\OrderManagementController::class, 'updateStatus'])->name('admin.orders.update-status');
+Route::get('admin/staff/department/{id}', [App\Http\Controllers\Admin\StaffController::class, 'department'])->name('admin.staff.department');
+
+
 
     // Settings Routes
     Route::get('admin/settings', [SettingsController::class, 'index'])->name('admin.settings.index');

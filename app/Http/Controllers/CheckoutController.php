@@ -99,4 +99,105 @@ class CheckoutController extends Controller
         $msg = ($mpesaAmount > 0) ? 'Order Placed! Please check your phone for the PIN.' : 'Payment Successful via Wallet!';
         return redirect()->route('receipt.show', $order->id)->with('success', $msg);
     }
+
+    public function mpesaCallback(\Illuminate\Http\Request $request)
+    {
+        // 1. Get the data sent by Safaricom
+        $data = json_decode($request->getContent());
+
+        // Log it so you can see what Safaricom sent in your storage/logs/laravel.log
+        \Illuminate\Support\Facades\Log::info('M-Pesa Callback Received: ', (array)$data);
+
+        // 2. Make sure it's a valid STK response
+        if (!isset($data->Body->stkCallback)) {
+            return response()->json(['message' => 'Invalid payload'], 400);
+        }
+
+        $callbackData = $data->Body->stkCallback;
+        $resultCode = $callbackData->ResultCode; // 0 means Success. Anything else is an error/cancel.
+        $checkoutRequestID = $callbackData->CheckoutRequestID; // The ws_CO_... tracking code
+
+        // 3. Find the order waiting for this specific payment
+        $order = \App\Models\Order::where('mpesa_code', $checkoutRequestID)->first();
+
+        if ($order) {
+            if ($resultCode == 0) {
+                // ✅ PAYMENT SUCCESSFUL
+                $mpesaReceiptNumber = '';
+                
+                // Safaricom sends an array of data, we need to loop through to find the Receipt Number
+                if (isset($callbackData->CallbackMetadata->Item)) {
+                    foreach ($callbackData->CallbackMetadata->Item as $item) {
+                        if ($item->Name == 'MpesaReceiptNumber') {
+                            $mpesaReceiptNumber = $item->Value;
+                            break;
+                        }
+                    }
+                }
+
+                // Update the database with real success data
+                $order->update([
+                    'status' => 'paid',
+                    'mpesa_code' => $mpesaReceiptNumber // Replace ws_CO with real code
+                ]);
+
+            } else {
+                // ❌ PAYMENT CANCELLED OR FAILED (e.g., Wrong PIN, Insufficient funds)
+                $order->update([
+                    'status' => 'failed'
+                ]);
+            }
+        }
+
+        // Safaricom requires a response so they know we received the message
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+    }
+
+    // --- STEP 2 ADDITIONS ---
+
+    // 1. Live Poller: Checks if the database status has changed
+    public function checkStatus($id)
+    {
+        $order = \App\Models\Order::findOrFail($id);
+        return response()->json([
+            'status' => $order->status,
+            'mpesa_code' => $order->mpesa_code
+        ]);
+    }
+
+    // 2. Cancel Order: Allows the user to cancel while pending
+public function cancelOrder(Request $request, $id)
+    {
+        $order = \App\Models\Order::with('items')->findOrFail($id);
+        
+        if ($order->status === 'pending') {
+            $order->update(['status' => 'cancelled']); 
+            
+            // Refund wallet allocation if they used any
+            if ($order->wallet_paid > 0 && Auth::check()) {
+                Auth::user()->increment('daily_allocation', $order->wallet_paid);
+            }
+
+            // 🌟 RESTORE CART ITEMS so they can try paying again
+            $cart = session()->get('cart', []);
+            foreach($order->items as $item) {
+                $menu = \App\Models\Menu::find($item->menu_id);
+                if ($menu) {
+                    $menu->increment('quantity', $item->quantity); // Restore stock
+                }
+                $cart[$item->menu_id] = [
+                    "name" => $item->menu_name,
+                    "quantity" => $item->quantity,
+                    "price" => $item->price,
+                    "image" => $menu ? $menu->image : null
+                ];
+            }
+            session()->put('cart', $cart);
+            
+            // Redirect back to Checkout instead of Homepage
+            return redirect()->route('checkout.index')->with('success', 'Order cancelled. You can update your details and try again.');
+        }
+
+        return back()->with('error', 'Cannot cancel this order.');
+    }
 }

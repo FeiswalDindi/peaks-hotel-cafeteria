@@ -18,7 +18,7 @@
     <div class="row g-4">
         @forelse($departments as $dept)
         <div class="col-md-4 col-lg-3">
-            <a href="{{ route('admin.staff.show', $dept->id) }}" class="text-decoration-none">
+            <a href="{{ route('admin.staff.department', $dept->id) }}" class="text-decoration-none">
                 <div class="card h-100 border-0 shadow-sm hover-card" style="transition: transform 0.2s;">
                     <div class="card-body text-center py-5">
                         <div class="mb-3 position-relative d-inline-block">
@@ -50,4 +50,41 @@
 <style>
     .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
 </style>
+
+@if(request('search'))
+    <div class="mt-5">
+        <h5 class="fw-bold kca-navy mb-3">Search Results for "{{ request('search') }}"</h5>
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Staff Name</th>
+                            <th>Staff ID</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($users ?? [] as $user)
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">{{ $user->name }}</td>
+                            <td>{{ $user->staff_number ?? 'N/A' }}</td>
+                            <td class="text-end pe-4">
+                                <a href="{{ route('admin.staff.show', $user->id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="fas fa-chart-line me-1"></i> View Trends
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No staff members found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
 @endsection

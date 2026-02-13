@@ -23,17 +23,18 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
 public function store(LoginRequest $request): RedirectResponse
-{
-    $request->authenticate();
-    $request->session()->regenerate();
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
 
-    // CUSTOM KCA REDIRECT LOGIC
-    if ($request->user()->hasRole('admin')) {
-        return redirect()->intended(route('admin.dashboard'));
+        // CUSTOM KCA REDIRECT LOGIC
+        if ($request->user()->hasRole('admin')) {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // ✅ FIXED: Redirect Staff to their new Portal
+        return redirect()->intended(route('orders.index')); 
     }
-
-    return redirect()->intended(route('home')); // Students/Staff go to the Menu
-}
 
     /**
      * Destroy an authenticated session.

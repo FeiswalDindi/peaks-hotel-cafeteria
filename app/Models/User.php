@@ -67,4 +67,6 @@ public function hasRole($role)
     {
         return $this->belongsTo(Department::class);
     }
+
+ 
 }

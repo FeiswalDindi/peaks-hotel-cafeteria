@@ -1,203 +1,130 @@
 @extends('layouts.admin')
 
 @section('header')
-    {{ $department->name }} Staff
+<div class="d-flex align-items-center">
+    @if($staff->department_id)
+        <a href="{{ route('admin.staff.department', $staff->department_id) }}" class="btn btn-sm btn-light border rounded-circle me-3 shadow-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+    @else
+        <a href="{{ route('admin.staff.index') }}" class="btn btn-sm btn-light border rounded-circle me-3 shadow-sm">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+    @endif
+    <span class="fw-bold">Staff Analytics Profile: {{ $staff->name }}</span>
+</div>
 @endsection
 
 @section('content')
-<div class="container-fluid">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="{{ route('admin.staff.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="fas fa-arrow-left me-2"></i> Back to Folders
-        </a>
-
-        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal" style="background-color: #192C57; border: none;">
-            <i class="fas fa-user-plus me-2"></i> Add Staff Member
-        </button>
-    </div>
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger shadow-sm border-0">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-secondary">
-                        <tr>
-                            <th class="ps-4">Staff Name</th>
-                            <th>Staff No.</th>
-                            <th>Daily Allowance</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($staffMembers as $staff)
-                        <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
-                                         style="width: 40px; height: 40px; font-weight: bold;">
-                                        {{ strtoupper(substr($staff->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-dark">{{ $staff->name }}</h6>
-                                        <small class="text-muted">{{ $staff->email }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border">
-                                    {{ $staff->staff_number ?? 'N/A' }}
-                                </span>
-                            </td>
-                            <td class="fw-bold text-dark">
-                                KES {{ number_format($staff->daily_allocation ?? 0) }}
-                            </td>
-                            <td>
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
-                                    Active
-                                </span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-outline-secondary"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editStaffModal{{ $staff->id }}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                
-                                <form action="{{ route('admin.staff.destroy', $staff->id) }}"
-                                      method="POST"
-                                      class="d-inline"
-                                      onsubmit="return confirm('Are you sure you want to delete this staff member?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                No staff found.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100">
+            <div class="bg-primary-subtle rounded-circle p-4 d-inline-block mx-auto mb-3 text-primary">
+                <i class="fas fa-user-tie fa-3x"></i>
+            </div>
+            <h4 class="fw-bold" style="color: #192C57;">{{ $staff->name }}</h4>
+            <p class="text-muted small mb-0">{{ $staff->department->name ?? 'No Department' }}</p>
+            <div class="badge mt-2 px-3" style="background-color: #192C57;">Staff ID: {{ $staff->staff_number ?? 'N/A' }}</div>
+            
+            <hr class="my-4 opacity-50">
+            
+            <div class="row text-start">
+                <div class="col-6 mb-3">
+                    <small class="text-muted d-block">Current Wallet</small>
+                    <span class="fw-bold">KES {{ number_format($staff->daily_allocation) }}</span>
+                </div>
+                <div class="col-6 mb-3">
+                    <small class="text-muted d-block">Lifetime Orders</small>
+                    <span class="fw-bold">{{ $staff->orders->count() }}</span>
+                </div>
             </div>
         </div>
     </div>
 
-    {{-- EDIT STAFF MODALS (MOVED OUTSIDE TABLE) --}}
-    @foreach($staffMembers as $staff)
-    <div class="modal fade" id="editStaffModal{{ $staff->id }}" tabindex="-1">
-        <div class="modal-dialog">
-            <form action="{{ route('admin.staff.update', $staff->id) }}" method="POST" class="modal-content">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="department_id" value="{{ $department->id }}">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Edit {{ $staff->name }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label>Full Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ $staff->name }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ $staff->email }}" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label>Staff No</label>
-                            <input type="text" name="staff_number" class="form-control" value="{{ $staff->staff_number }}">
+    <div class="col-md-8">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-4 rounded-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 text-muted fw-bold small text-uppercase">Top Preference</p>
+                            <h3 class="fw-bold mb-0" style="color: #192C57;">{{ $favoriteItem->menu_name ?? 'N/A' }}</h3>
+                            <small class="text-success">{{ $favoriteItem->total ?? 0 }} total orders</small>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label>Allowance (KES)</label>
-                            <input type="number" name="daily_allocation" class="form-control" value="{{ $staff->daily_allocation }}" required>
+                        <i class="fas fa-heart fa-3x text-danger opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-4 rounded-4 text-white" style="background: #198754;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 opacity-75 small fw-bold">Lifetime Value</p>
+                            <h3 class="fw-bold mb-0">KES {{ number_format($totalSpent) }}</h3>
+                            <small>Staff Contribution</small>
+                        </div>
+                        <i class="fas fa-hand-holding-usd fa-3x opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-4 mt-3">
+                    <h6 class="fw-bold mb-4" style="color: #192C57;">Payment Method Distribution</h6>
+                    <div class="progress" style="height: 30px; border-radius: 15px;">
+                        @php 
+                            $walletPerc = $totalSpent > 0 ? ($walletTotal / $totalSpent) * 100 : 0;
+                            $mpesaPerc = $totalSpent > 0 ? ($mpesaTotal / $totalSpent) * 100 : 100;
+                        @endphp
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $walletPerc }}%" title="Wallet Payments">
+                            Wallet: {{ number_format($walletPerc) }}%
+                        </div>
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $mpesaPerc }}%" title="M-Pesa Payments">
+                            M-Pesa: {{ number_format($mpesaPerc) }}%
                         </div>
                     </div>
+                    <div class="d-flex justify-content-between mt-3 small text-muted">
+                        <span><i class="fas fa-circle text-primary me-1"></i> KES {{ number_format($walletTotal) }}</span>
+                        <span><i class="fas fa-circle text-success me-1"></i> KES {{ number_format($mpesaTotal) }}</span>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
-    @endforeach
-
-</div>
-
-{{-- ADD STAFF MODAL --}}
-<div class="modal fade" id="addStaffModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ route('admin.staff.store') }}" method="POST" class="modal-content">
-            @csrf
-            <input type="hidden" name="department_id" value="{{ $department->id }}">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Add Staff to {{ $department->name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Staff Number</label>
-                        <input type="text" name="staff_number" class="form-control" required>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Email Address</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Default Password</label>
-                        <input type="text" name="password" class="form-control" value="kca12345" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold text-success">Daily Allowance</label>
-                        <input type="number" name="daily_allocation" class="form-control" value="500" required>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Cancel
-                </button>
-                <button type="submit" class="btn btn-primary" style="background-color: #192C57;">
-                    Save Staff Member
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mt-4">
+    <div class="card-header bg-white py-3 border-0">
+        <h5 class="fw-bold mb-0" style="color: #192C57;">Order History for {{ $staff->name }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Order ID</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Wallet</th>
+                        <th>M-Pesa</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($staff->orders as $order)
+                    <tr>
+                        <td class="ps-4 fw-bold">#{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}</td>
+                        <td>{{ $order->created_at->format('d M, Y') }}</td>
+                        <td class="fw-bold">KES {{ number_format($order->total_amount) }}</td>
+                        <td class="text-primary">KES {{ number_format($order->wallet_paid) }}</td>
+                        <td class="text-success">KES {{ number_format($order->mpesa_paid) }}</td>
+                        <td><span class="badge bg-success-subtle text-success px-3">{{ $order->status }}</span></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 @endsection

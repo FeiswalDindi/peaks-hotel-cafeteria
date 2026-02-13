@@ -57,27 +57,23 @@
         }
 
         /* Emergency fix to prevent the "Dark Ghost" screen */
-
-
         /* FORCE HIDE ALL OVERLAYS AND UNLOCK SCREEN */
-.modal-backdrop {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-}
+        .modal-backdrop {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
 
-body {
-    overflow: auto !important;
-    padding-right: 0 !important;
-    pointer-events: auto !important;
-}
+        body {
+            overflow: auto !important;
+            padding-right: 0 !important;
+            pointer-events: auto !important;
+        }
 
-/* This targets the specific "frozen" state seen in your screenshot */
-.modal-open {
-    overflow: auto !important;
-}
-
-
+        /* This targets the specific "frozen" state seen in your screenshot */
+        .modal-open {
+            overflow: auto !important;
+        }
     </style>
 </head>
 <body>
@@ -88,58 +84,63 @@ body {
         </div>
         
         <nav class="nav flex-column mt-4">
+            
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home me-2" style="width: 25px;"></i> Dashboard
+            </a>
+
+            <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                <i class="fas fa-receipt me-2" style="width: 25px;"></i> Order Management
             </a>
 
             <a href="{{ route('admin.menus.index') }}" class="nav-link {{ request()->routeIs('admin.menus.*') ? 'active' : '' }}">
                 <i class="fas fa-utensils me-2" style="width: 25px;"></i> Menu Items
             </a>
 
-<li class="nav-item">
-    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#staffSubmenu" aria-expanded="false">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-users-cog me-2"></i>
-            <span>Staff Management</span>
-            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
-        </div>
-    </a>
-    
-    <div class="collapse" id="staffSubmenu" style="background: rgba(0,0,0,0.1);">
-        <ul class="nav flex-column ps-3">
+            <a href="{{ route('admin.reports.daily') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar me-2" style="width: 25px;"></i> Daily Financial Report
+            </a>
+
             <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}" 
-                   href="{{ route('admin.departments.index') }}">
-                    <i class="fas fa-building me-2"></i> Departments
+                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#staffSubmenu" aria-expanded="false">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-users-cog me-2" style="width: 25px;"></i>
+                        <span>Staff Management</span>
+                        <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+                    </div>
                 </a>
+                
+                <div class="collapse" id="staffSubmenu" style="background: rgba(0,0,0,0.1);">
+                    <ul class="nav flex-column ps-3">
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}" 
+                               href="{{ route('admin.staff.index') }}">
+                                <i class="fas fa-id-card me-2"></i> Staff Directory
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}" 
+                               href="{{ route('admin.departments.index') }}">
+                                <i class="fas fa-building me-2"></i> Departments
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
-            
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}" 
-                   href="{{ route('admin.staff.index') }}">
-                    <i class="fas fa-id-card me-2"></i> Staff Directory
-                </a>
-            </li>
-        </ul>
-    </div>
-</li>
 
             <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
                 <i class="fas fa-sliders-h me-2" style="width: 25px;"></i> Settings
             </a>
 
-            <a href="{{ route('admin.reports.daily') }}" class="nav-link">
-    <i class="fas fa-file-invoice-dollar me-2" style="width: 25px;"></i> Daily Staff Financial Report
-</a>
-
-<form method="POST" action="{{ route('logout') }}" id="admin-logout-form" class="mt-5">
-    @csrf
-    <a href="#" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();" 
-       class="nav-link w-100 text-start bg-transparent border-0 text-danger" 
-       style="cursor: pointer;">
-        <i class="fas fa-sign-out-alt me-2" style="width: 25px;"></i> Logout
-    </a>
-</form>
+            <form method="POST" action="{{ route('logout') }}" id="admin-logout-form" class="mt-5">
+                @csrf
+                <a href="#" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();" 
+                   class="nav-link w-100 text-start bg-transparent border-0 text-danger" 
+                   style="cursor: pointer;">
+                    <i class="fas fa-sign-out-alt me-2" style="width: 25px;"></i> Logout
+                </a>
+            </form>
+            
         </nav>
     </div>
 
@@ -176,6 +177,6 @@ body {
         document.body.classList.remove('modal-open');
         document.body.style.overflow = 'auto'; 
     });
-</script>
+    </script>
 </body>
 </html>

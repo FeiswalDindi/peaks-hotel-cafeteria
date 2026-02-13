@@ -22,36 +22,49 @@ class CartController extends Controller
 
     // 2. Add Item to Cart
 public function addToCart($id)
-{
-    $menu = \App\Models\Menu::findOrFail($id);
-    $cart = session()->get('cart', []);
+    {
+        $menu = \App\Models\Menu::findOrFail($id);
+        $cart = session()->get('cart', []);
 
-    // Check if item is already in cart
-    if(isset($cart[$id])) {
-        $cart[$id]['quantity']++;
-    } else {
-        // THIS WAS THE MISSING PART: We need to save the 'image' here
-        $cart[$id] = [
-            "name" => $menu->name,
-            "quantity" => 1,
-            "price" => $menu->price,
-            "image" => $menu->image // ✅ Fixing the crash
-        ];
+        // 1. Add item to cart
+        if(isset($cart[$id])) {
+            $cart[$id]['quantity']++;
+        } else {
+            $cart[$id] = [
+                "name" => $menu->name,
+                "quantity" => 1,
+                "price" => $menu->price,
+                "image" => $menu->image
+            ];
+        }
+        session()->put('cart', $cart);
+
+        // 2. Calculate new total
+        $total = 0;
+        foreach($cart as $details) {
+            $total += $details['price'] * $details['quantity'];
+        }
+
+        // 3. Check for Low Balance (Staff Only)
+        $exceedsAllowance = false;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->hasRole('staff')) {
+            if ($total > \Illuminate\Support\Facades\Auth::user()->daily_allocation) {
+                $exceedsAllowance = true;
+            }
+        }
+
+        // 4. Send response back to the live screen
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'cart_count' => count($cart),
+                'item_quantity' => $cart[$id]['quantity'],
+                'exceeds_allowance' => $exceedsAllowance // 🌟 NEW: Send the warning flag to the frontend
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Product added to cart successfully!');
     }
-
-    session()->put('cart', $cart);
-
-    // If the request comes from JavaScript (AJAX), return JSON
-    if (request()->ajax()) {
-        return response()->json([
-            'success' => true,
-            'cart_count' => count($cart),       // Total items in cart
-            'item_quantity' => $cart[$id]['quantity'] // Specific count for this item (for the animation)
-        ]);
-    }
-
-    return redirect()->back()->with('success', 'Product added to cart successfully!');
-}
     // 3. Remove Item
     public function remove(Request $request)
     {
@@ -62,6 +75,17 @@ public function addToCart($id)
                 session()->put('cart', $cart);
             }
             session()->flash('success', 'Item removed successfully');
+        }
+    }
+
+    // 4. Update Cart Quantity
+    public function update(Request $request)
+    {
+        if($request->id && $request->quantity){
+            $cart = session()->get('cart');
+            $cart[$request->id]["quantity"] = $request->quantity;
+            session()->put('cart', $cart);
+            session()->flash('success', 'Cart updated successfully');
         }
     }
 }
