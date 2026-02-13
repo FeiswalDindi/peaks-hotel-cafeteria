@@ -29,11 +29,25 @@
                     
                     <td class="text-success fw-bold">KES {{ number_format($user->daily_allocation) }}</td>
                     
-                    <td class="text-end pe-4">
-                        <a href="{{ route('admin.staff.show', $user->id) }}" class="btn btn-sm rounded-pill px-3 fw-bold shadow-sm" style="background-color: #192C57; color: #ffffff;">
-                            <i class="fas fa-chart-pie me-1"></i> View Trends
-                        </a>
-                    </td>
+<td class="text-end pe-4">
+    <div class="d-flex justify-content-end gap-2">
+        <a href="{{ route('admin.staff.show', $user->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm" title="View Trends">
+            <i class="fas fa-chart-pie"></i>
+        </a>
+        
+        <a href="{{ route('admin.staff.edit', $user->id) }}" class="btn btn-sm text-white rounded-pill shadow-sm" style="background-color: #CEAA0C;" title="Edit Staff">
+            <i class="fas fa-edit"></i>
+        </a>
+
+        <form action="{{ route('admin.staff.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently remove this staff member?');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-sm btn-danger rounded-pill shadow-sm" title="Remove Staff">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </form>
+    </div>
+</td>
                 </tr>
                 @empty
                 <tr>
