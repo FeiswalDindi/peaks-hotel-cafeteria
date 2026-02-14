@@ -43,13 +43,17 @@ The system allows **Staff** to pay using their daily meal allowances (digital wa
 
 ## 📸 Screenshots
 
-| **Staff Login** | **Menu & Cart** |
+| **Staff Login** | **Home Page** |
 |:---:|:---:|
-| ![Login Page](./screenshots/login.png) | ![Menu Page](./screenshots/menu.png) |
+| ![Login Page](./screenshots/login.png) | ![Home Page](./screenshots/homepage.png) |
 
 | **M-Pesa Integration** | **Locked Receipt** |
 |:---:|:---:|
 | ![Checkout](./screenshots/checkout.png) | ![Receipt](./screenshots/receipt.png) |
+
+| **Main Menu** | **Admin Dashboard** |
+|:---:|:---:|
+| ![Login Page](./screenshots/menu&cart.png) | ![Home Page](./screenshots/admin-dashboard.png) |
 
 *(Note: Add screenshots to a `screenshots` folder in your repo to make these visible)*
 
