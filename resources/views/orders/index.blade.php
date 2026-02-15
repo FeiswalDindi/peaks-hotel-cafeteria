@@ -25,7 +25,7 @@
         </a>
         <div class="d-flex align-items-center gap-3">
             <span class="text-muted small fw-bold d-none d-md-block">Staff Portal: {{ $user->name }}</span>
-            <a href="{{ route('home') }}" class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm">
+            <a href="{{ route('menu.all') }}" class="btn btn-outline-dark rounded-pill px-4 fw-bold shadow-sm">
                 <i class="fas fa-arrow-left me-2"></i> Back to Menu
             </a>
         </div>
@@ -42,7 +42,7 @@
             <div class="bg-white p-3 rounded-4 shadow-sm border border-primary d-inline-block text-start" style="min-width: 220px;">
                 <span class="text-muted small fw-bold d-block mb-1">Today's Wallet Balance</span>
                 <h4 class="kca-navy fw-bold mb-0">
-                    <i class="fas fa-wallet text-primary me-2"></i> KES {{ number_format($user->daily_allocation, 2) }}
+                    <i class="fas fa-wallet text-primary me-2"></i> KES {{ number_format($user->wallet_balance, 2) }}
                 </h4>
             </div>
         </div>

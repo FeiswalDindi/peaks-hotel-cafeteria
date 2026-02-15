@@ -4,33 +4,25 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class ResetWallets extends Command
 {
-    // The command you type in the terminal
+    // Keeping your original signature!
     protected $signature = 'wallet:reset';
 
-    // What the command does
-    protected $description = 'Resets daily allocations: 500 for Admin, 200 for Staff';
+    // Updated description
+    protected $description = 'Refills the wallet_balance to match each user\'s unique daily_allocation limit';
 
     public function handle()
     {
-        $users = User::all();
-        $count = 0;
+        $this->info('Starting Daily Wallet Reset...');
 
-        foreach ($users as $user) {
-            // Give Admins 500
-            if ($user->hasRole('admin')) {
-                $user->update(['daily_allocation' => 500]);
-                $count++;
-            } 
-            // Give normal Staff 200
-            elseif ($user->hasRole('staff')) {
-                $user->update(['daily_allocation' => 200]);
-                $count++;
-            }
-        }
+        // 🌟 THE FIX: This single query finds everyone who has an allocation, 
+        // and instantly copies their specific allocation limit straight into their spendable wallet!
+        $updatedCount = User::where('daily_allocation', '>', 0)
+                            ->update(['wallet_balance' => DB::raw('daily_allocation')]);
 
-        $this->info("Successfully reset wallets for {$count} users!");
+        $this->info("Successfully refilled wallets for {$updatedCount} users!");
     }
 }

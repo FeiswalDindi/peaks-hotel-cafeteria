@@ -41,19 +41,22 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #192C57;">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm" style="background-color: #192C57; z-index: 1050;">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{{ route('home') }}" style="color: #CEAA0C;">
                 <i class="fas fa-graduation-cap"></i> KCAU
             </a>
-            <div class="d-flex gap-3">
-                <a href="{{ route('home') }}" class="text-white text-decoration-none">Home</a>
-                <a href="{{ route('menu.all') }}" class="text-white text-decoration-none fw-bold border-bottom border-warning">Menu</a>
-<a href="{{ route('cart.index') }}" id="nav-cart-btn" class="text-white text-decoration-none position-relative">
-                    <i class="fas fa-shopping-cart"></i>
+            
+            <div class="d-flex align-items-center gap-4">
+                <a href="{{ route('home') }}" class="text-white text-decoration-none small fw-bold opacity-75 hover-opacity-100">HOME</a>
+                
+                <a href="{{ route('menu.all') }}" class="text-white text-decoration-none small fw-bold border-bottom border-warning pb-1">MENU</a>
+                
+                <a href="{{ route('cart.index') }}" id="nav-cart-btn" class="btn btn-sm position-relative shadow-sm" style="background-color: #CEAA0C; color: #192C57; border-radius: 8px; padding: 6px 12px;">
+                    <i class="fas fa-shopping-cart fw-bold"></i>
                     @php $cartCount = count(session('cart', [])); @endphp
                     @if($cartCount > 0)
-                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" style="font-size: 0.65rem;">
                         {{ $cartCount }}
                     </span>
                     @endif
@@ -142,29 +145,25 @@
     @include('layouts.footer')
 
     <script>
- let fadeTimers = {};
+    let fadeTimers = {};
     function addToCart(id) {
         fetch('/add-to-cart/' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }})
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // 🌟 NEW: Smart Alert Toast Logic
                 const toast = document.getElementById('toast-box');
                 if (toast) { 
                     if (data.exceeds_allowance) {
-                        // Warn them in RED
-                        toast.style.background = '#dc3545'; // Danger Red
+                        toast.style.background = '#dc3545'; 
                         toast.style.color = '#fff';
                         toast.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Exceeds Wallet! Excess will be via M-Pesa.';
                     } else {
-                        // Normal Success in Navy Blue
-                        toast.style.background = '#192C57'; // KCA Navy
-                        toast.style.color = '#CEAA0C'; // KCA Gold
+                        toast.style.background = '#192C57'; 
+                        toast.style.color = '#CEAA0C'; 
                         toast.innerHTML = '<i class="fas fa-check-circle me-2"></i> Added to Cart!';
                     }
                     
                     toast.style.display = 'block'; 
-                    // Leave the warning on screen slightly longer (3.5 seconds)
                     setTimeout(() => { toast.style.display = 'none'; }, 3500); 
                 }
 
@@ -174,7 +173,7 @@
                 } else { 
                     const cartBtn = document.getElementById('nav-cart-btn'); 
                     if (cartBtn) { 
-                        cartBtn.insertAdjacentHTML('beforeend', `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">${data.cart_count}</span>`); 
+                        cartBtn.insertAdjacentHTML('beforeend', `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" style="font-size: 0.65rem;">${data.cart_count}</span>`); 
                     } 
                 }
                 const itemCounter = document.getElementById('counter-' + id);
@@ -188,12 +187,10 @@
         });
     }
 
-        document.addEventListener('DOMContentLoaded', function() {
-        // Find the search input field
+    document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.querySelector('input[name="search"]'); 
         
         if (searchInput) {
-            // Stop the form from reloading the page when typing
             const form = searchInput.closest('form');
             if(form) {
                 form.addEventListener('submit', function(e) {
@@ -201,19 +198,15 @@
                 });
             }
 
-            // The Instant Filter Logic
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase().trim();
-                const menuCards = document.querySelectorAll('.card'); // Assuming your food items are in .card
+                const menuCards = document.querySelectorAll('.card'); 
 
                 menuCards.forEach(card => {
-                    // Find the title element inside the card (usually an h6 or h5)
                     const titleElement = card.querySelector('h6') || card.querySelector('.card-title');
                     
                     if (titleElement) {
                         const title = titleElement.innerText.toLowerCase();
-                        
-                        // Find the grid column wrapper (e.g., col-lg-3, col-6) to hide the whole block
                         const colWrapper = card.closest('[class*="col-"]'); 
                         
                         if (title.includes(searchTerm)) {

@@ -115,6 +115,7 @@ class StaffController extends Controller
     }
 
     // 🌟 Save the Updates
+// 🌟 Save the Updates (Now with Password Reset Override)
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -125,8 +126,8 @@ class StaffController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'daily_allocation' => 'numeric|min:0',
             'wallet_balance' => 'numeric|min:0',
-            // 🌟 THE FIX: Added unique rule that ignores the current user
             'staff_number' => 'nullable|string|max:50|unique:users,staff_number,'.$user->id,
+            'password' => 'nullable|string|min:8', // 🌟 NEW: Allow optional password update
         ]);
 
         // Find department name for the old column
@@ -136,7 +137,8 @@ class StaffController extends Controller
             $deptName = $dept ? $dept->name : null;
         }
 
-        $user->update([
+        // Prepare the data to update
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'department_id' => $request->department_id,
@@ -144,11 +146,18 @@ class StaffController extends Controller
             'daily_allocation' => $request->daily_allocation,
             'wallet_balance' => $request->wallet_balance ?? $user->wallet_balance,
             'staff_number' => $request->staff_number,
-        ]);
+        ];
+
+        // 🌟 NEW: If the Admin typed a password, hash it and add it to the update list!
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $user->update($updateData);
 
         // Redirect back to their department list with a success message
         return redirect()->route('admin.staff.department', $user->department_id ?? 1)
-                         ->with('success', "{$user->name}'s profile has been updated.");
+                         ->with('success', "{$user->name}'s profile (and password if provided) has been updated.");
     }
 
     // 🌟 Delete the Staff Member

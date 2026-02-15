@@ -36,10 +36,10 @@ class CheckoutController extends Controller
         $total = 0;
         foreach($cart as $item) { $total += $item['price'] * $item['quantity']; }
 
-        // Calculate Wallet Usage for Staff
+        // 🌟 THE FIX #1: Calculate Wallet Usage based on wallet_balance, NOT daily_allocation
         $walletUsed = 0;
         if (Auth::check() && Auth::user()->hasRole('staff')) {
-            $walletUsed = min($total, Auth::user()->daily_allocation);
+            $walletUsed = min($total, Auth::user()->wallet_balance); 
         }
         $mpesaAmount = $total - $walletUsed;
 
@@ -89,8 +89,9 @@ class CheckoutController extends Controller
                 if($menu) $menu->decrement('quantity', $details['quantity']);
             }
             
+            // 🌟 THE FIX #2: Deduct funds from the correct spendable wallet column
             if ($walletUsed > 0) {
-                Auth::user()->decrement('daily_allocation', $walletUsed);
+                Auth::user()->decrement('wallet_balance', $walletUsed);
             }
         });
 
@@ -166,16 +167,16 @@ class CheckoutController extends Controller
     }
 
     // 2. Cancel Order: Allows the user to cancel while pending
-public function cancelOrder(Request $request, $id)
+    public function cancelOrder(Request $request, $id)
     {
         $order = \App\Models\Order::with('items')->findOrFail($id);
         
         if ($order->status === 'pending') {
             $order->update(['status' => 'cancelled']); 
             
-            // Refund wallet allocation if they used any
+            // 🌟 THE FIX #3: Refund funds to the spendable wallet column
             if ($order->wallet_paid > 0 && Auth::check()) {
-                Auth::user()->increment('daily_allocation', $order->wallet_paid);
+                Auth::user()->increment('wallet_balance', $order->wallet_paid);
             }
 
             // 🌟 RESTORE CART ITEMS so they can try paying again

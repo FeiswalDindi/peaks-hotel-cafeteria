@@ -110,6 +110,20 @@
         display: block;
     }
 
+    /* 🌟 NEW: Custom styling for the forgot password link */
+    .forgot-link {
+        color: #192C57;
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .forgot-link:hover {
+        color: #CEAA0C;
+        text-decoration: underline;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .login-card {
@@ -121,12 +135,8 @@
         body {
             overflow: auto;
         }
-
-        
     }
 </style>
-
-
 </head>
 <body>
 
@@ -153,6 +163,13 @@
                 <p class="text-muted">Please authenticate to continue.</p>
             </div>
 
+            @if (session('status'))
+                <div class="alert alert-success d-flex align-items-center mb-4 border-0 shadow-sm" role="alert" style="background-color: #f0fdf4; color: #166534;">
+                    <i class="fas fa-check-circle me-3 fa-lg"></i>
+                    <div class="small fw-bold">{{ session('status') }}</div>
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger d-flex align-items-center mb-4 border-0 shadow-sm" role="alert" style="background-color: #fff5f5; color: #c0392b;">
                     <i class="fas fa-exclamation-circle me-3 fa-lg"></i>
@@ -172,7 +189,7 @@
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-id-card text-muted"></i></span>
                         <input type="text" name="email" 
                                class="form-control border-start-0 {{ $errors->has('email') ? 'is-invalid' : '' }}" 
-                               placeholder="e.g. C1850" 
+                               placeholder="e.g. C1850 or staff@kcau.ac.ke" 
                                value="{{ old('email') }}" 
                                required autofocus>
                     </div>
@@ -184,14 +201,23 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label text-uppercase">Password</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label text-uppercase mb-0">Password</label>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request') }}" class="forgot-link">
+                                Forgot Password?
+                            </a>
+                        @endif
+                    </div>
                     <div class="input-group password-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
                         <input type="password" name="password" id="password"
                                class="form-control border-start-0 {{ $errors->has('password') ? 'is-invalid' : '' }}" 
                                placeholder="••••••••" 
                                required>
-                        <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
+                        <span class="input-group-text bg-light border-start-0" style="cursor: pointer;" onclick="togglePassword()">
+                            <i class="fas fa-eye toggle-password-icon text-muted"></i>
+                        </span>
                     </div>
                 </div>
 
@@ -216,7 +242,7 @@
     <script>
         function togglePassword() {
             const passwordInput = document.getElementById('password');
-            const icon = document.querySelector('.toggle-password');
+            const icon = document.querySelector('.toggle-password-icon');
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 icon.classList.remove('fa-eye');

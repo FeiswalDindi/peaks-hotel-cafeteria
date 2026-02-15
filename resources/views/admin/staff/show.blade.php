@@ -31,7 +31,7 @@
             <div class="row text-start">
                 <div class="col-6 mb-3">
                     <small class="text-muted d-block">Current Wallet</small>
-                    <span class="fw-bold">KES {{ number_format($staff->daily_allocation) }}</span>
+                    <span class="fw-bold">KES {{ number_format($staff->wallet_balance) }}</span>
                 </div>
                 <div class="col-6 mb-3">
                     <small class="text-muted d-block">Lifetime Orders</small>
