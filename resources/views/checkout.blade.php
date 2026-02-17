@@ -27,8 +27,30 @@ body {
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-<div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
                 <h4 class="fw-bold mb-4">Finalize Order</h4>
+
+                @if(session('success'))
+                    <div class="alert alert-success small mb-4 shadow-sm border-0 rounded-3">
+                        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="alert alert-danger small mb-4 shadow-sm border-0 rounded-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
+                    </div>
+                @endif
+
+                @if($errors->any())
+                    <div class="alert alert-danger small mb-4 shadow-sm border-0 rounded-3">
+                        <ul class="mb-0">
+                            @foreach($errors->all() as $error)
+                                <li><i class="fas fa-times-circle me-1"></i> {{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <div class="d-flex justify-content-between mb-2">
                     <span>Total Bill:</span>
@@ -39,7 +61,7 @@ body {
                     $walletBalance = 0;
                     $walletCovered = 0;
                     if(Auth::check() && Auth::user()->hasRole('staff')) {
-                        $walletBalance = Auth::user()->daily_allocation;
+                        $walletBalance = Auth::user()->wallet_balance;
                         $walletCovered = min($total, $walletBalance);
                     }
                     $mpesaToPay = $total - $walletCovered;
@@ -73,6 +95,7 @@ body {
                                    pattern="\d{9}"
                                    inputmode="numeric"
                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 9)"
+                                   value="{{ old('phone') }}"
                                    required
                                    style="border-left: 0;">
                         </div>

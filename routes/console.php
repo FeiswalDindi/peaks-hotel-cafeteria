@@ -9,6 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 // 🌟 THE NEW MIDNIGHT CRON JOB
-Schedule::command('wallets:reset')
-        ->dailyAt('00:00')
-        ->timezone('Africa/Nairobi');
+// Temporary test schedule
+Schedule::command('wallet:reset')->dailyAt('00:00')->timezone('Africa/Nairobi');

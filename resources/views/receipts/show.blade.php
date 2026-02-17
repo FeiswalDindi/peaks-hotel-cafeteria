@@ -51,8 +51,16 @@
                     <button type="submit" class="btn btn-outline-danger w-100 fw-bold shadow-sm" onclick="return confirm('Are you sure you want to cancel this order?');"><i class="fas fa-times-circle me-1"></i> Cancel Order</button>
                 </form>
             </div>
-        @elseif($order->status == 'cancelled')
-            <div class="status-badge bg-pending" style="background-color: #343a40;" data-html2canvas-ignore="true"><i class="fas fa-times-circle me-2"></i> ORDER CANCELLED</div>
+     @elseif($order->status == 'cancelled')
+            <div class="status-badge bg-pending" style="background-color: #343a40;" data-html2canvas-ignore="true">
+                <i class="fas fa-times-circle me-2"></i> ORDER CANCELLED
+            </div>
+            
+            @if(session('timeout_message'))
+                <div class="alert alert-warning text-center small fw-bold mx-4 shadow-sm" data-html2canvas-ignore="true" style="border-radius: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                    <i class="fas fa-exclamation-triangle me-1 text-danger"></i> {{ session('timeout_message') }}
+                </div>
+            @endif
         @else
             <div class="status-badge bg-paid"><i class="fas fa-check-circle me-2"></i> PAID & VERIFIED</div>
         @endif
@@ -108,20 +116,35 @@
     </script>
     @endif
 
-    <script>
-        // 🌟 NEW: Show Thank You card, wait 3 seconds, redirect.
+<script>
+        // Show Thank You card, wait 2.5 seconds, redirect.
         function triggerDone() {
             document.getElementById('thankYouOverlay').style.display = 'flex';
             setTimeout(() => { window.location.href = "{{ route('menu.all') }}"; }, 2500);
         }
 
-        // 🌟 NEW: Connected download to triggerDone
+        // Connected download to triggerDone with fixed thermal receipt dimensions
         function downloadPDF() {
             const element = document.getElementById('receipt-box');
-            const opt = { margin: 10, filename: 'KCA_Receipt_{{ $order->id }}.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a6', orientation: 'portrait' } };
+            
+            // 🌟 THE FIX: Temporarily remove the CSS margin & shadow so the text doesn't get pushed off the PDF canvas
+            element.style.margin = '0';
+            element.style.boxShadow = 'none';
+            window.scrollTo(0,0); // Snap to top
+            
+            const opt = { 
+                margin: 2, // Tiny 2mm margin
+                filename: 'KCA_Receipt_{{ $order->id }}.pdf', 
+                image: { type: 'jpeg', quality: 1 }, 
+                html2canvas: { scale: 2, scrollY: 0, useCORS: true }, 
+                jsPDF: { unit: 'mm', format: [80, 250], orientation: 'portrait' } 
+            };
             
             // Wait for PDF to generate, save it, THEN show the Thank You card
             html2pdf().set(opt).from(element).save().then(() => {
+                // Instantly restore the beautiful styles back to the screen
+                element.style.margin = '';
+                element.style.boxShadow = '';
                 triggerDone();
             });
         }

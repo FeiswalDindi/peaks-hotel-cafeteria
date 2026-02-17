@@ -89,9 +89,11 @@ class CheckoutController extends Controller
                 if($menu) $menu->decrement('quantity', $details['quantity']);
             }
             
-            // 🌟 THE FIX #2: Deduct funds from the correct spendable wallet column
+            // 🌟 THE FIX #2: Deduct from spendable balance AND increase the daily usage tally
             if ($walletUsed > 0) {
-                Auth::user()->decrement('wallet_balance', $walletUsed);
+                $user = Auth::user();
+                $user->decrement('wallet_balance', $walletUsed);
+                $user->increment('allocation_used_today', $walletUsed);
             }
         });
 
@@ -156,14 +158,58 @@ class CheckoutController extends Controller
 
     // --- STEP 2 ADDITIONS ---
 
-    // 1. Live Poller: Checks if the database status has changed
-    public function checkStatus($id)
+    // 1. Live Poller: Actively checks Safaricom for status changes
+ // 1. Live Poller: Actively checks Safaricom for status changes (STRICT MODE)
+    public function checkStatus($id, \App\Services\MpesaService $mpesaService)
     {
-        $order = \App\Models\Order::findOrFail($id);
-        return response()->json([
-            'status' => $order->status,
-            'mpesa_code' => $order->mpesa_code
-        ]);
+        $order = \App\Models\Order::with('items')->findOrFail($id);
+
+        // If it's already processed, just return the status
+        if ($order->status !== 'pending' || !$order->mpesa_code) {
+            return response()->json(['status' => $order->status]);
+        }
+
+        $response = $mpesaService->queryStkStatus($order->mpesa_code);
+
+        if ($response['success']) {
+            // Check if ResultCode actually exists in the response
+            if (isset($response['data']['ResultCode'])) {
+                $resultCode = (string) $response['data']['ResultCode'];
+
+                if ($resultCode === '0') {
+                    // ✅ PAID SUCCESSFULLY
+                    $order->update(['status' => 'paid']);
+                } 
+                // ❌ STRICT FAILURES: 1032 (Cancelled), 1 (Insufficient Funds), 1037 (Timeout), 2001 (Wrong PIN)
+                elseif (in_array($resultCode, ['1032', '1', '1037', '2001', '1036'])) {
+                    
+                    $order->update(['status' => 'cancelled']);
+
+                    // Refund the wallet safely
+                    if ($order->wallet_paid > 0 && \App\Models\User::find($order->user_id)) {
+                        $user = \App\Models\User::find($order->user_id);
+                        $user->increment('wallet_balance', $order->wallet_paid);
+                        
+                        if($user->allocation_used_today >= $order->wallet_paid) {
+                            $user->decrement('allocation_used_today', $order->wallet_paid);
+                        } else {
+                            $user->update(['allocation_used_today' => 0]);
+                        }
+                    }
+
+                    // Restore the food stock
+                    foreach($order->items as $item) {
+                        $menu = \App\Models\Menu::find($item->menu_id);
+                        if ($menu) {
+                            $menu->increment('quantity', $item->quantity);
+                        }
+                    }
+                }
+                // If it's any other random code from the Sandbox, DO NOTHING and keep waiting!
+            }
+        }
+
+        return response()->json(['status' => $order->status]);
     }
 
     // 2. Cancel Order: Allows the user to cancel while pending
@@ -174,9 +220,16 @@ class CheckoutController extends Controller
         if ($order->status === 'pending') {
             $order->update(['status' => 'cancelled']); 
             
-            // 🌟 THE FIX #3: Refund funds to the spendable wallet column
+            // 🌟 THE FIX #3: Refund funds to the spendable wallet column AND reduce tally
             if ($order->wallet_paid > 0 && Auth::check()) {
-                Auth::user()->increment('wallet_balance', $order->wallet_paid);
+                $user = Auth::user();
+                $user->increment('wallet_balance', $order->wallet_paid);
+                
+                if($user->allocation_used_today >= $order->wallet_paid) {
+                    $user->decrement('allocation_used_today', $order->wallet_paid);
+                } else {
+                    $user->update(['allocation_used_today' => 0]);
+                }
             }
 
             // 🌟 RESTORE CART ITEMS so they can try paying again

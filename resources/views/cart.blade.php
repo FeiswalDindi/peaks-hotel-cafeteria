@@ -91,7 +91,7 @@
                     
                     @if(Auth::check() && Auth::user()->hasRole('staff'))
                         @php 
-                            $wallet = Auth::user()->daily_allocation;
+                           $wallet = Auth::user()->wallet_balance;
                             $walletUsed = min($total, $wallet);
                             $mpesaExcess = $total - $walletUsed;
                         @endphp

@@ -178,5 +178,7 @@
         document.body.style.overflow = 'auto'; 
     });
     </script>
+
+    @include('components.neema')
 </body>
 </html>

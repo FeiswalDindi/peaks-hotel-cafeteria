@@ -37,6 +37,10 @@ Route::get('receipt/{id}/check-status', [ReceiptController::class, 'checkStatus'
 // The New Mega Menu Page
 Route::get('/menu', [PublicMenuController::class, 'all'])->name('menu.all');
 
+
+//CHATBOT ROUTES
+Route::post('/chatbot/send', [\App\Http\Controllers\ChatbotController::class, 'sendMessage'])->name('chatbot.send');
+
 /*
 |--------------------------------------------------------------------------
 | CHECKOUT ROUTES

@@ -29,21 +29,30 @@ class MpesaService
 
     public function getAccessToken()
     {
-        $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
-            ->get("{$this->baseUrl}/oauth/v1/generate?grant_type=client_credentials");
+        try {
+            // 🌟 SAFETY NET: Retry once if it fails, give up after 10 seconds so the app doesn't freeze
+            $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
+                ->retry(2, 100) 
+                ->timeout(10)   
+                ->get("{$this->baseUrl}/oauth/v1/generate?grant_type=client_credentials");
 
-        if ($response->successful()) {
-            return $response->json()['access_token'];
+            if ($response->successful()) {
+                return $response->json()['access_token'] ?? null;
+            }
+
+            Log::error('M-Pesa Token Error: ' . $response->body());
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error('M-Pesa Connection Down (Token): ' . $e->getMessage());
+            return null;
         }
-
-        Log::error('M-Pesa Token Error: ' . $response->body());
-        return null;
     }
 
     public function stkPush($phoneNumber, $amount, $reference)
     {
         $token = $this->getAccessToken();
-        if (!$token) return ['success' => false, 'message' => 'Token Generation Failed. Check your .env keys.'];
+        if (!$token) return ['success' => false, 'message' => 'System could not connect to Safaricom. Please try again later.'];
 
         $timestamp = date('YmdHis');
         $password = base64_encode($this->shortCode . $this->passkey . $timestamp);
@@ -57,34 +66,42 @@ class MpesaService
             "PartyA" => $phoneNumber,
             "PartyB" => $this->shortCode,
             "PhoneNumber" => $phoneNumber,
-            // ✅ Use a valid-looking URL even on localhost to avoid silent rejection
             "CallBackURL" => "https://mydomain.com/api/callback", 
             "AccountReference" => "KCACafe",
             "TransactionDesc" => "Payment for Food"
         ];
 
         try {
-            $response = Http::withToken($token)->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
+            // 🌟 SAFETY NET: 15-second strict timeout for the STK prompt
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
 
             if ($response->successful()) {
-                return ['success' => true, 'data' => $response->json()];
+                $res = $response->json();
+                
+                // Safaricom sometimes returns "Success" HTTP codes but embeds an error code (ResponseCode != 0) inside
+                if(isset($res['ResponseCode']) && $res['ResponseCode'] == '0') {
+                    return ['success' => true, 'data' => $res];
+                }
+                
+                return ['success' => false, 'message' => $res['CustomerMessage'] ?? 'Safaricom rejected the request.'];
             }
 
             $res = $response->json();
-            return ['success' => false, 'message' => $res['errorMessage'] ?? 'STK Push Failed'];
+            Log::error('M-Pesa STK Push Failed: ', (array)$res);
+            return ['success' => false, 'message' => $res['errorMessage'] ?? 'Safaricom servers are currently unreachable.'];
+
         } catch (\Exception $e) {
-            return ['success' => false, 'message' => 'Connection Error: ' . $e->getMessage()];
+            Log::error('M-Pesa Exception (STK Push): ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Connection to M-Pesa timed out. Please check your network.'];
         }
     }
 
-/**
-     * Step 3: Check Transaction Status (STK Query)
-     * Use this if you are on Localhost or didn't get a Callback
-     */
     public function queryStkStatus($checkoutRequestId)
     {
         $token = $this->getAccessToken();
-        if (!$token) return ['success' => false, 'message' => 'Token Error'];
+        if (!$token) return ['success' => false, 'message' => 'System could not connect to Safaricom.'];
 
         $timestamp = date('YmdHis');
         $password = base64_encode($this->shortCode . $this->passkey . $timestamp);
@@ -97,18 +114,25 @@ class MpesaService
         ];
 
         try {
+            // 🌟 SAFETY NET: 10-second timeout for status checks
             $response = Http::withToken($token)
+                ->timeout(10)
                 ->post("{$this->baseUrl}/mpesa/stkpushquery/v1/query", $payload);
 
             if ($response->successful()) {
                 return ['success' => true, 'data' => $response->json()];
             }
             
-            return ['success' => false, 'message' => $response->json()['errorMessage'] ?? 'Query Failed'];
+            $errorData = $response->json();
+            
+            // Log this quietly, as it often just means the user hasn't typed their PIN yet
+            Log::info('M-Pesa STK Query Status: ', (array)$errorData);
+            
+            return ['success' => false, 'message' => $errorData['errorMessage'] ?? 'Transaction is still processing.'];
 
         } catch (\Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            Log::error('M-Pesa Exception (Query): ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Timeout while checking status. Please wait a moment.'];
         }
     }
-
 }
