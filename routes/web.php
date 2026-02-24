@@ -123,7 +123,7 @@ Route::post('admin/feedback/read-all', [FeedbackController::class, 'readAll'])->
 Route::get('admin/orders', [App\Http\Controllers\Admin\OrderManagementController::class, 'index'])->name('admin.orders.index');
 Route::patch('admin/orders/{id}/status', [App\Http\Controllers\Admin\OrderManagementController::class, 'updateStatus'])->name('admin.orders.update-status');
 Route::get('admin/staff/department/{id}', [App\Http\Controllers\Admin\StaffController::class, 'department'])->name('admin.staff.department');
-
+Route::post('/admin/staff/reset-allocations', [\App\Http\Controllers\Admin\StaffController::class, 'resetAllocations'])->name('admin.staff.reset-allocations');
 
 
     // Settings Routes

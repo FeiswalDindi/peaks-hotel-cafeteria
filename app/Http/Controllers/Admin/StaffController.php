@@ -173,4 +173,21 @@ class StaffController extends Controller
         $user->delete();
         return back()->with('success', 'Staff member deleted successfully.');
     }
-}
+
+
+
+public function resetAllocations()
+    {
+        // This instantly forces a complete hard-reset for every user
+        \App\Models\User::query()->update([
+            'wallet_balance' => 200,       // <-- Forces current balance to 200
+            'daily_allocation' => 200,     // <-- Sets their total allowance for the day to 200
+            'allocation_used_today' => 0   // <-- Clears whatever they spent yesterday
+        ]);
+
+        // Remember the exact time you clicked the button
+        \Illuminate\Support\Facades\Cache::put('last_wallet_reset', now(), now()->addDays(30));
+
+        return redirect()->back()->with('success', 'Absolute Success! All wallets forcibly reset to KES 200, limits updated, and usage cleared.');
+    }
+    }

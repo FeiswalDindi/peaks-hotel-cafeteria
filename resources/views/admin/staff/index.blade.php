@@ -13,6 +13,28 @@
                 <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
             </form>
         </div>
+
+<div class="card shadow-sm mb-4 border-0" style="background-color: #f8f9fa;">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-1 fw-bold text-dark"><i class="fas fa-wallet text-warning me-2"></i> Daily Wallet Reset (KES 200)</h5>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                Last Reset: 
+                <span class="badge bg-secondary">
+                    {{ Cache::has('last_wallet_reset') ? Cache::get('last_wallet_reset')->format('d M Y, h:i A') : 'Never' }}
+                </span>
+            </p>
+        </div>
+        
+        <form action="{{ route('admin.staff.reset-allocations') }}" method="POST" onsubmit="return confirm('Are you sure you want to reset EVERYONE to a KES 200 limit and clear their daily usage?');">
+            @csrf
+            <button type="submit" class="btn btn-warning fw-bold shadow-sm">
+                <i class="fas fa-sync-alt me-1"></i> Reset All to KES 200
+            </button>
+        </form>
+    </div>
+</div>
+        
         <div class="col-md-4 text-end">
             <a href="{{ route('admin.staff.create') }}" class="btn btn-lg text-white rounded-pill shadow-sm px-4" style="background-color: #192C57;">
                 <i class="fas fa-plus-circle me-2"></i> Add New Staff
