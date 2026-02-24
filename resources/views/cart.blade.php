@@ -48,7 +48,7 @@
                                     <tr>
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ !empty($details['image']) ? asset('storage/'.$details['image']) : 'https://via.placeholder.com/50' }}" 
+                                                <img src="{{ !empty($details['image']) ? asset($details['image']) : 'https://via.placeholder.com/50' }}" 
                                                      width="55" height="55" class="rounded-3 shadow-sm me-3 object-fit-cover" alt="Item">
                                                 <span class="fw-bold text-dark">{{ $details['name'] }}</span>
                                             </div>

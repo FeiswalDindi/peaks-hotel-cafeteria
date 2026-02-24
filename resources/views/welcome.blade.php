@@ -32,19 +32,25 @@
             <i class="fas fa-graduation-cap" style="color: #CEAA0C;"></i> KCA<span style="color: #CEAA0C;">U</span>
         </a>
         
-        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <button class="navbar-toggler border-0 shadow-none position-relative me-2 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
             <span class="navbar-toggler-icon"></span>
+            @php $cartCount = count(session('cart', [])); @endphp
+            @if($cartCount > 0)
+                <span id="hamburger-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white shadow-sm" style="font-size: 0.65rem;">
+                    {{ $cartCount }}
+                </span>
+            @endif
         </button>
         
         <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
             <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0">
                 <a href="{{ route('menu.all') }}" class="text-decoration-none fw-bold text-lg-start" style="color: #192C57;">MENU</a>
                 
-                <a href="{{ route('cart.index') }}" class="btn btn-light position-relative rounded-pill px-3 border shadow-sm align-self-start align-self-lg-auto">
+                <a href="{{ route('cart.index') }}" id="nav-cart-btn" class="btn btn-light position-relative rounded-pill px-3 border shadow-sm align-self-start align-self-lg-auto">
                     <i class="fas fa-shopping-cart" style="color: #192C57;"></i>
                     @php $cartCount = count(session('cart', [])); @endphp
                     @if($cartCount > 0)
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $cartCount }}</span>
+                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ $cartCount }}</span>
                     @endif
                 </a>
 
@@ -130,7 +136,10 @@
                     <p class="text-muted small mb-3">{{ Str::limit($item->description, 35) }}</p>
                     <div class="mt-auto d-flex justify-content-between align-items-center">
                         <span class="fw-bold" style="color: #192C57;">KES {{ number_format($item->price, 0) }}</span>
-                        <button onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 35px; height: 35px;"><i class="fas fa-plus"></i></button>
+                        
+                        <button type="button" onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 35px; height: 35px;">
+                            <i class="fas fa-plus text-white"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -158,7 +167,7 @@
     let i = 0; const el = document.getElementById('flipping-text');
     if (el) { setInterval(() => { el.style.opacity = 0; setTimeout(() => { i = (i + 1) % phrases.length; el.innerText = phrases[i]; el.style.opacity = 1; }, 500); }, 2500); }
 
-  let fadeTimers = {};
+    let fadeTimers = {};
     function addToCart(id) {
         fetch('/add-to-cart/' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }})
         .then(response => response.json())
@@ -180,8 +189,28 @@
                     setTimeout(() => { toast.style.display = 'none'; }, 3500); 
                 }
 
-                const badge = document.querySelector('.badge.rounded-pill.bg-danger');
-                if (badge) { badge.innerText = data.cart_count; } else { const cartBtn = document.querySelector('.btn-light.position-relative'); if (cartBtn) { cartBtn.insertAdjacentHTML('beforeend', `<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">${data.cart_count}</span>`); } }
+                // --- 1. UPDATE THE MAIN CART BADGE ---
+                const badge = document.getElementById('cart-badge');
+                if (badge) { 
+                    badge.innerText = data.cart_count; 
+                } else { 
+                    const cartBtn = document.getElementById('nav-cart-btn'); 
+                    if (cartBtn) { 
+                        cartBtn.insertAdjacentHTML('beforeend', `<span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">${data.cart_count}</span>`); 
+                    } 
+                }
+                
+                // --- 2. UPDATE THE NEW HAMBURGER MENU BADGE ---
+                const burgerBadge = document.getElementById('hamburger-badge');
+                if (burgerBadge) {
+                    burgerBadge.innerText = data.cart_count;
+                } else {
+                    const burgerBtn = document.querySelector('.navbar-toggler');
+                    if (burgerBtn) {
+                        burgerBtn.insertAdjacentHTML('beforeend', `<span id="hamburger-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white shadow-sm" style="font-size: 0.65rem;">${data.cart_count}</span>`);
+                    }
+                }
+                // ----------------------------------------------
                 
                 const itemCounter = document.getElementById('counter-' + id);
                 if (itemCounter) {
