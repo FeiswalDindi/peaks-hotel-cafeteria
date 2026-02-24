@@ -119,7 +119,7 @@
             <div class="card h-100 border-0 shadow-sm food-card">
                 <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                     @if($item->image)
-                        <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="{{ asset($item->image) }}" alt="{{ $item->name }}" style="width: 100%; height: 100%; object-fit: cover;">
                     @else
                         <i class="fas fa-hamburger fa-3x text-muted opacity-50"></i>
                     @endif
@@ -135,7 +135,10 @@
                 </div>
             </div>
         </div>
- @empty
+    @empty
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">No featured items available right now.</p>
+        </div>
     @endforelse
     </div>
 
@@ -161,23 +164,19 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // 🌟 NEW: Smart Alert Toast Logic
                 const toast = document.getElementById('toast-box');
                 if (toast) { 
                     if (data.exceeds_allowance) {
-                        // Warn them in RED
-                        toast.style.background = '#dc3545'; // Danger Red
+                        toast.style.background = '#dc3545'; 
                         toast.style.color = '#fff';
                         toast.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Exceeds Wallet! Excess will be via M-Pesa.';
                     } else {
-                        // Normal Success in Navy Blue
-                        toast.style.background = '#192C57'; // KCA Navy
-                        toast.style.color = '#CEAA0C'; // KCA Gold
+                        toast.style.background = '#192C57'; 
+                        toast.style.color = '#CEAA0C'; 
                         toast.innerHTML = '<i class="fas fa-check-circle me-2"></i> Added to Cart!';
                     }
                     
                     toast.style.display = 'block'; 
-                    // Leave the warning on screen slightly longer (3.5 seconds)
                     setTimeout(() => { toast.style.display = 'none'; }, 3500); 
                 }
 

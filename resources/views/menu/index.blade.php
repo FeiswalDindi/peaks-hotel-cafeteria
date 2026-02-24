@@ -101,7 +101,7 @@
 
                     <div style="height: 150px; background-color: #eee; display: flex; align-items: center; justify-content: center;">
                         @if($item->image)
-                            <img src="{{ asset('storage/'.$item->image) }}" class="w-100 h-100 object-fit-cover">
+                            <img src="{{ asset($item->image) }}" class="w-100 h-100 object-fit-cover">
                         @else
                             <i class="fas fa-utensils fa-3x text-muted opacity-50"></i>
                         @endif

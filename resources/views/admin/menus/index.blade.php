@@ -32,7 +32,7 @@
                     <tr>
                         <td class="ps-3">
                             @if($menu->image)
-                                <img src="{{ asset('storage/' . $menu->image) }}" 
+                                <img src="{{ asset($menu->image) }}" 
                                      width="50" height="50"
                                      class="rounded object-fit-cover">
                             @else
