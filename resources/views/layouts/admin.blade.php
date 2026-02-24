@@ -26,21 +26,24 @@
             font-size: 1.5rem;
             font-weight: bold;
             color: #CEAA0C; /* KCA Gold */
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .nav-link {
-            color: rgba(255,255,255,0.8);
+        .sidebar a {
             padding: 12px 25px;
-            font-size: 1rem;
-            transition: all 0.3s;
+            text-decoration: none;
+            font-size: 1.1rem;
+            color: #c2c7d0;
+            display: block;
+            transition: 0.3s;
             border-left: 4px solid transparent;
         }
-        .nav-link:hover, .nav-link.active {
-            background-color: rgba(255,255,255,0.1);
-            color: #fff;
-            border-left-color: #CEAA0C;
+        .sidebar a:hover, .sidebar a.active {
+            background-color: rgba(206, 170, 12, 0.1);
+            color: #CEAA0C;
+            border-left: 4px solid #CEAA0C;
         }
         .main-content {
             margin-left: 260px;
@@ -48,96 +51,81 @@
             transition: all 0.3s;
         }
         .header {
-            background: #fff;
+            background-color: #fff;
             padding: 15px 30px;
-            border-bottom: 1px solid #e0e0e0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* Emergency fix to prevent the "Dark Ghost" screen */
-        /* FORCE HIDE ALL OVERLAYS AND UNLOCK SCREEN */
-        .modal-backdrop {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-        }
-
-        body {
-            overflow: auto !important;
-            padding-right: 0 !important;
-            pointer-events: auto !important;
-        }
-
-        /* This targets the specific "frozen" state seen in your screenshot */
-        .modal-open {
-            overflow: auto !important;
+        /* 🌟 NEW: Responsive adjustments for Mobile & Tablets */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+            .header {
+                padding: 15px;
+            }
         }
     </style>
 </head>
 <body>
 
+    <div class="sidebar-overlay d-md-none" id="sidebarOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;"></div>
+
     <div class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fas fa-graduation-cap"></i> KCAU
-        </div>
-        
+        <a href="{{ route('admin.dashboard') }}" class="sidebar-brand">
+            <i class="fas fa-graduation-cap me-2"></i> KCAU
+        </a>
         <nav class="nav flex-column mt-4">
+            <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home me-2"></i> Dashboard
+            </a>
+            <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                <i class="fas fa-receipt me-2"></i> Order Management
+            </a>
+            <a href="{{ route('admin.menus.index') }}" class="{{ request()->routeIs('admin.menus.*') ? 'active' : '' }}">
+                <i class="fas fa-utensils me-2"></i> Menu Items
+            </a>
+            <a href="{{ route('admin.reports.daily') }}" class="{{ request()->routeIs('admin.reports.daily') ? 'active' : '' }}">
+                <i class="fas fa-file-invoice-dollar me-2"></i> Daily Financial Report
+            </a>
             
-            <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-home me-2" style="width: 25px;"></i> Dashboard
+            <a href="#staffMenu" data-bs-toggle="collapse" class="{{ request()->routeIs('admin.staff.*', 'admin.departments.*') ? 'active' : '' }}">
+                <i class="fas fa-users-cog me-2"></i> Staff Management
+                <i class="fas fa-chevron-down float-end mt-1" style="font-size: 0.8rem;"></i>
             </a>
-
-            <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                <i class="fas fa-receipt me-2" style="width: 25px;"></i> Order Management
-            </a>
-
-            <a href="{{ route('admin.menus.index') }}" class="nav-link {{ request()->routeIs('admin.menus.*') ? 'active' : '' }}">
-                <i class="fas fa-utensils me-2" style="width: 25px;"></i> Menu Items
-            </a>
-
-            <a href="{{ route('admin.reports.daily') }}" class="nav-link">
-                <i class="fas fa-file-invoice-dollar me-2" style="width: 25px;"></i> Daily Financial Report
-            </a>
-
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#staffSubmenu" aria-expanded="false">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-users-cog me-2" style="width: 25px;"></i>
-                        <span>Staff Management</span>
-                        <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
-                    </div>
+            <div class="collapse {{ request()->routeIs('admin.staff.*', 'admin.departments.*') ? 'show' : '' }}" id="staffMenu">
+                <a href="{{ route('admin.staff.index') }}" class="ps-5 py-2 {{ request()->routeIs('admin.staff.index') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-user-tie me-2"></i> View Staff
                 </a>
-                
-                <div class="collapse" id="staffSubmenu" style="background: rgba(0,0,0,0.1);">
-                    <ul class="nav flex-column ps-3">
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}" 
-                               href="{{ route('admin.staff.index') }}">
-                                <i class="fas fa-id-card me-2"></i> Staff Directory
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.departments.*') ? 'active' : '' }}" 
-                               href="{{ route('admin.departments.index') }}">
-                                <i class="fas fa-building me-2"></i> Departments
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                <a href="{{ route('admin.departments.index') }}" class="ps-5 py-2 {{ request()->routeIs('admin.departments.*') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-building me-2"></i> Departments
+                </a>
+                <a href="{{ route('admin.staff.create') }}" class="ps-5 py-2 {{ request()->routeIs('admin.staff.create') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-user-plus me-2"></i> Add Staff
+                </a>
+            </div>
 
-            <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                <i class="fas fa-sliders-h me-2" style="width: 25px;"></i> Settings
+            <a href="{{ route('admin.feedback.index') }}" class="{{ request()->routeIs('admin.feedback.*') ? 'active' : '' }}">
+                <i class="fas fa-comments me-2"></i> Reviews & Feedback
             </a>
 
-            <form method="POST" action="{{ route('logout') }}" id="admin-logout-form" class="mt-5">
+            <a href="{{ route('admin.settings.index') }}" class="{{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                <i class="fas fa-cogs me-2"></i> Settings
+            </a>
+            
+            <form method="POST" action="{{ route('logout') }}" class="mt-4">
                 @csrf
-                <a href="#" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();" 
-                   class="nav-link w-100 text-start bg-transparent border-0 text-danger" 
-                   style="cursor: pointer;">
-                    <i class="fas fa-sign-out-alt me-2" style="width: 25px;"></i> Logout
+                <a href="#" onclick="event.preventDefault(); this.closest('form').submit();" class="text-danger">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
                 </a>
             </form>
             
@@ -146,7 +134,12 @@
 
     <div class="main-content">
         <div class="header mb-4 rounded-3 shadow-sm">
-            <h4 class="mb-0 fw-bold text-dark">@yield('header')</h4>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-light border d-md-none" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h4 class="mb-0 fw-bold text-dark">@yield('header')</h4>
+            </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-light text-dark border">{{ Auth::user()->name ?? 'Admin' }}</span>
             </div>
@@ -175,10 +168,28 @@
 
         // 2. Unlock the scrollbar
         document.body.classList.remove('modal-open');
-        document.body.style.overflow = 'auto'; 
+        document.body.style.overflow = 'auto';
+        document.body.style.paddingRight = '0px';
+
+        // 🌟 NEW: 3. Mobile Sidebar Toggle Logic
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+            });
+        }
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.style.display = 'none';
+            });
+        }
     });
     </script>
-
-    @include('components.neema')
 </body>
 </html>
