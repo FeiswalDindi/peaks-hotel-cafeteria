@@ -33,7 +33,7 @@ class MpesaService
             // 🌟 SAFETY NET: Retry once if it fails, give up after 10 seconds so the app doesn't freeze
             $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
                 ->retry(2, 100) 
-                ->timeout(10)   
+                ->timeout(59)   
                 ->get("{$this->baseUrl}/oauth/v1/generate?grant_type=client_credentials");
 
             if ($response->successful()) {
@@ -66,7 +66,7 @@ class MpesaService
             "PartyA" => $phoneNumber,
             "PartyB" => $this->shortCode,
             "PhoneNumber" => $phoneNumber,
-            "CallBackURL" => "https://mydomain.com/api/callback", 
+            "CallBackURL" => 'https://kca-cafeteria.free.nf/api/mpesa/callback', 
             "AccountReference" => "KCACafe",
             "TransactionDesc" => "Payment for Food"
         ];
@@ -74,7 +74,7 @@ class MpesaService
         try {
             // 🌟 SAFETY NET: 15-second strict timeout for the STK prompt
             $response = Http::withToken($token)
-                ->timeout(15)
+                ->timeout(59)
                 ->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", $payload);
 
             if ($response->successful()) {
@@ -116,7 +116,7 @@ class MpesaService
         try {
             // 🌟 SAFETY NET: 10-second timeout for status checks
             $response = Http::withToken($token)
-                ->timeout(10)
+                ->timeout(59)
                 ->post("{$this->baseUrl}/mpesa/stkpushquery/v1/query", $payload);
 
             if ($response->successful()) {

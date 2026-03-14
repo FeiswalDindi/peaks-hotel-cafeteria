@@ -11,30 +11,13 @@
     <style>
         body { background-color: #f4f6f9; font-family: 'Courier New', Courier, monospace; }
         
-        /* 🌟 NEW: Floating Back Button */
         .floating-back-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 45px;
-            height: 45px;
-            background: #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #192C57;
-            text-decoration: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            font-size: 1.2rem;
+            position: fixed; top: 20px; left: 20px; width: 45px; height: 45px;
+            background: #fff; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: #192C57; text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s ease; z-index: 1000; font-size: 1.2rem;
         }
-        .floating-back-btn:hover {
-            background: #192C57;
-            color: #fff;
-            transform: translateX(-3px);
-        }
+        .floating-back-btn:hover { background: #192C57; color: #fff; transform: translateX(-3px); }
 
         .receipt-container { max-width: 380px; margin: 60px auto 50px; background: #fff; padding: 25px 20px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-radius: 8px; }
         .status-badge { text-align: center; padding: 12px; margin-bottom: 25px; font-weight: bold; color: white; border-radius: 6px; letter-spacing: 1px;}
@@ -42,8 +25,16 @@
         .bg-paid { background-color: #198754; } 
         .blur-content { filter: blur(5px); pointer-events: none; user-select: none; }
         
+        /* Premium UX Styles */
         .locked-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255,255,255,0.95); padding: 30px 20px; border: 2px solid #dc3545; width: 85%; z-index: 10; box-shadow: 0 10px 25px rgba(220,53,69,0.2); border-radius: 12px;}
         
+        .pulse-icon { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .scanning-bar { width: 100%; height: 4px; background: #ffe5e5; border-radius: 2px; overflow: hidden; position: relative; margin: 15px 0 20px 0; }
+        .scanning-bar::after { content: ''; position: absolute; top: 0; left: -50%; width: 50%; height: 100%; background: #dc3545; animation: scan 1.5s infinite ease-in-out; border-radius: 2px; }
+        @keyframes scan { 0% { left: -50%; } 100% { left: 100%; } }
+
         .thank-you-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(25, 44, 87, 0.95); z-index: 9999; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
         .thank-you-card { background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3); max-width: 400px; width: 90%; transform: scale(0.9); animation: popIn 0.3s forwards; }
         
@@ -70,14 +61,15 @@
         
         @if($order->status == 'pending')
             <div class="status-badge bg-pending" data-html2canvas-ignore="true"><i class="fas fa-clock me-2"></i> PAYMENT PENDING</div>
-            <div class="text-center mb-3" data-html2canvas-ignore="true">
-                <small class="text-muted fw-bold">Awaiting M-Pesa Confirmation...</small>
-                <div class="spinner-border spinner-border-sm text-danger ms-2" role="status"></div>
-            </div>
+            
             <div class="locked-overlay rounded" data-html2canvas-ignore="true">
-                <i class="fas fa-mobile-alt fa-3x text-danger mb-3 pulse-animation"></i>
+                <i class="fas fa-mobile-alt fa-3x text-danger mb-3 pulse-icon"></i>
                 <h5 class="fw-bold text-danger">CHECK YOUR PHONE</h5>
-                <p class="small text-muted mb-4">Please enter your M-Pesa PIN to complete the transaction and unlock your receipt.</p>
+                
+                <div class="scanning-bar"></div>
+                
+                <p class="small text-muted mb-4 fw-bold" id="dynamic-waiting-text">Awaiting M-Pesa PIN...</p>
+                
                 <form action="{{ route('order.cancel', $order->id) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-outline-danger w-100 fw-bold shadow-sm rounded-pill" onclick="return confirm('Are you sure you want to cancel this order?');"><i class="fas fa-times me-1"></i> Cancel Request</button>
@@ -152,25 +144,21 @@
     </div>
 
     @if($order->status == 'pending')
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <script>
-        // Open the silent connection to Pusher
-        var pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
-            cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
-            forceTLS: true
-        });
+        // 1. Dynamic Text Cycler to keep user engaged
+        const messages = [
+            "Awaiting M-Pesa PIN...", 
+            "Connecting to Safaricom...", 
+            "Verifying transaction...", 
+            "Still checking network..."
+        ];
+        let msgIndex = 0;
+        setInterval(() => {
+            msgIndex = (msgIndex + 1) % messages.length;
+            document.getElementById('dynamic-waiting-text').innerText = messages[msgIndex];
+        }, 3500);
 
-        // Listen explicitly to this order's channel
-        var channel = pusher.subscribe('order.{{ $order->id }}');
-
-        // When the Webhook shouts "paid" or "cancelled", refresh instantly
-        channel.bind('payment.updated', function(data) {
-            if(data.status === 'paid' || data.status === 'cancelled') {
-                window.location.reload();
-            }
-        });
-        // 2. 🌟 THE FIX: The InfinityFree Fallback Poller
-        // Since free hosts block incoming webhooks, we must manually ask the server to check Safaricom
+        // 2. The Original 3-Second Status Knocker
         setInterval(function() {
             fetch("{{ route('order.status', $order->id) }}")
                 .then(response => response.json())
@@ -178,8 +166,8 @@
                     if(data.status === 'paid' || data.status === 'cancelled') { 
                         window.location.reload(); 
                     }
-                }).catch(error => console.error('Fallback Poller Error:', error));
-        }, 400); // Checks every 4 seconds
+                }).catch(error => console.error('Poller Error:', error));
+        }, 3000);
     </script>
     @endif
 
