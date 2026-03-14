@@ -103,56 +103,60 @@ class CheckoutController extends Controller
         return redirect()->route('receipt.show', $order->id)->with('success', $msg);
     }
 
-    public function mpesaCallback(\Illuminate\Http\Request $request)
+ public function mpesaCallback(\Illuminate\Http\Request $request)
     {
         // 1. Get the data sent by Safaricom
         $data = json_decode($request->getContent());
-
-        // Log it so you can see what Safaricom sent in your storage/logs/laravel.log
         \Illuminate\Support\Facades\Log::info('M-Pesa Callback Received: ', (array)$data);
 
-        // 2. Make sure it's a valid STK response
         if (!isset($data->Body->stkCallback)) {
             return response()->json(['message' => 'Invalid payload'], 400);
         }
 
         $callbackData = $data->Body->stkCallback;
-        $resultCode = $callbackData->ResultCode; // 0 means Success. Anything else is an error/cancel.
+        $resultCode = $callbackData->ResultCode; // 0 means Success.
         $checkoutRequestID = $callbackData->CheckoutRequestID; // The ws_CO_... tracking code
 
-        // 3. Find the order waiting for this specific payment
-        $order = \App\Models\Order::where('mpesa_code', $checkoutRequestID)->first();
+        // 2. Find the pending order (Load items so we can restore stock if it fails)
+        $order = \App\Models\Order::with('items')->where('mpesa_code', $checkoutRequestID)->first();
 
-        if ($order) {
-            if ($resultCode == 0) {
+        // 3. Only process if the order exists and is still pending
+        if ($order && $order->status === 'pending') {
+           if ($resultCode == 0) {
                 // ✅ PAYMENT SUCCESSFUL
-                $mpesaReceiptNumber = '';
+                $order->update(['status' => 'paid']);
                 
-                // Safaricom sends an array of data, we need to loop through to find the Receipt Number
-                if (isset($callbackData->CallbackMetadata->Item)) {
-                    foreach ($callbackData->CallbackMetadata->Item as $item) {
-                        if ($item->Name == 'MpesaReceiptNumber') {
-                            $mpesaReceiptNumber = $item->Value;
-                            break;
-                        }
+                // 🌟 THE NEW TRIGGER: Shout to Pusher that it's paid!
+                event(new \App\Events\PaymentReceived($order->id, 'paid'));
+                
+                // Note: We deliberately leave the mpesa_code as 'ws_CO...' so we don't break tracking.
+            } else {
+                // ❌ PAYMENT CANCELLED OR FAILED
+                $order->update(['status' => 'cancelled']);
+
+                // 🌟 THE FIX: Refund the wallet safely
+                if ($order->wallet_paid > 0 && \App\Models\User::find($order->user_id)) {
+                    $user = \App\Models\User::find($order->user_id);
+                    $user->increment('wallet_balance', $order->wallet_paid);
+                    
+                    if($user->allocation_used_today >= $order->wallet_paid) {
+                        $user->decrement('allocation_used_today', $order->wallet_paid);
+                    } else {
+                        $user->update(['allocation_used_today' => 0]);
                     }
                 }
 
-                // Update the database with real success data
-                $order->update([
-                    'status' => 'paid',
-                    'mpesa_code' => $mpesaReceiptNumber // Replace ws_CO with real code
-                ]);
-
-            } else {
-                // ❌ PAYMENT CANCELLED OR FAILED (e.g., Wrong PIN, Insufficient funds)
-                $order->update([
-                    'status' => 'failed'
-                ]);
+                // 🌟 THE FIX: Restore the food stock
+                foreach($order->items as $item) {
+                    $menu = \App\Models\Menu::find($item->menu_id);
+                    if ($menu) {
+                        $menu->increment('quantity', $item->quantity);
+                    }
+                }
             }
         }
 
-        // Safaricom requires a response so they know we received the message
+        // 4. Safaricom requires this exact response so they know we received it
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
     }
 

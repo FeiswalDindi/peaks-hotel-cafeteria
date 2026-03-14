@@ -9,22 +9,53 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        body { background-color: #e0e0e0; font-family: 'Courier New', Courier, monospace; }
-        .receipt-container { max-width: 380px; margin: 50px auto; background: #fff; padding: 20px; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .status-badge { text-align: center; padding: 10px; margin-bottom: 20px; font-weight: bold; color: white; }
+        body { background-color: #f4f6f9; font-family: 'Courier New', Courier, monospace; }
+        
+        /* 🌟 NEW: Floating Back Button */
+        .floating-back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #192C57;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            font-size: 1.2rem;
+        }
+        .floating-back-btn:hover {
+            background: #192C57;
+            color: #fff;
+            transform: translateX(-3px);
+        }
+
+        .receipt-container { max-width: 380px; margin: 60px auto 50px; background: #fff; padding: 25px 20px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-radius: 8px; }
+        .status-badge { text-align: center; padding: 12px; margin-bottom: 25px; font-weight: bold; color: white; border-radius: 6px; letter-spacing: 1px;}
         .bg-pending { background-color: #dc3545; } 
         .bg-paid { background-color: #198754; } 
-        .blur-content { filter: blur(4px); pointer-events: none; user-select: none; }
-        .locked-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255,255,255,0.95); padding: 25px 20px; border: 2px solid #dc3545; width: 85%; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .blur-content { filter: blur(5px); pointer-events: none; user-select: none; }
         
-        /* 🌟 NEW: Thank You Floating Card Styles */
-        .thank-you-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(25, 44, 87, 0.9); z-index: 9999; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
+        .locked-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255,255,255,0.95); padding: 30px 20px; border: 2px solid #dc3545; width: 85%; z-index: 10; box-shadow: 0 10px 25px rgba(220,53,69,0.2); border-radius: 12px;}
+        
+        .thank-you-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(25, 44, 87, 0.95); z-index: 9999; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
         .thank-you-card { background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3); max-width: 400px; width: 90%; transform: scale(0.9); animation: popIn 0.3s forwards; }
+        
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes popIn { to { transform: scale(1); } }
     </style>
 </head>
 <body>
+
+    <a href="{{ Auth::check() ? route('dashboard') : route('home') }}" class="floating-back-btn" data-html2canvas-ignore="true" title="Go Back">
+        <i class="fas fa-chevron-left"></i>
+    </a>
 
     <div class="thank-you-overlay" id="thankYouOverlay" data-html2canvas-ignore="true">
         <div class="thank-you-card">
@@ -44,23 +75,25 @@
                 <div class="spinner-border spinner-border-sm text-danger ms-2" role="status"></div>
             </div>
             <div class="locked-overlay rounded" data-html2canvas-ignore="true">
-                <i class="fas fa-lock fa-3x text-danger mb-3"></i><h5 class="fw-bold text-danger">RECEIPT LOCKED</h5>
-                <p class="small text-muted mb-3">Please enter your M-Pesa PIN on your phone to unlock.</p>
+                <i class="fas fa-mobile-alt fa-3x text-danger mb-3 pulse-animation"></i>
+                <h5 class="fw-bold text-danger">CHECK YOUR PHONE</h5>
+                <p class="small text-muted mb-4">Please enter your M-Pesa PIN to complete the transaction and unlock your receipt.</p>
                 <form action="{{ route('order.cancel', $order->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn btn-outline-danger w-100 fw-bold shadow-sm" onclick="return confirm('Are you sure you want to cancel this order?');"><i class="fas fa-times-circle me-1"></i> Cancel Order</button>
+                    <button type="submit" class="btn btn-outline-danger w-100 fw-bold shadow-sm rounded-pill" onclick="return confirm('Are you sure you want to cancel this order?');"><i class="fas fa-times me-1"></i> Cancel Request</button>
                 </form>
             </div>
-     @elseif($order->status == 'cancelled')
+            
+        @elseif($order->status == 'cancelled')
             <div class="status-badge bg-pending" style="background-color: #343a40;" data-html2canvas-ignore="true">
                 <i class="fas fa-times-circle me-2"></i> ORDER CANCELLED
             </div>
-            
             @if(session('timeout_message'))
-                <div class="alert alert-warning text-center small fw-bold mx-4 shadow-sm" data-html2canvas-ignore="true" style="border-radius: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                <div class="alert alert-warning text-center small fw-bold mx-2 shadow-sm" data-html2canvas-ignore="true" style="border-radius: 8px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
                     <i class="fas fa-exclamation-triangle me-1 text-danger"></i> {{ session('timeout_message') }}
                 </div>
             @endif
+            
         @else
             <div class="status-badge bg-paid"><i class="fas fa-check-circle me-2"></i> PAID & VERIFIED</div>
         @endif
@@ -84,67 +117,98 @@
                 @if($order->wallet_paid > 0)<div class="d-flex justify-content-between text-muted"><span>Staff Wallet:</span><span>-{{ number_format($order->wallet_paid) }}</span></div>@endif
                 @if($order->mpesa_paid > 0)<div class="d-flex justify-content-between text-muted"><span>M-Pesa ({{ $order->status == 'paid' ? $order->mpesa_code : 'Pending' }}):</span><span>{{ number_format($order->mpesa_paid) }}</span></div>@endif
             </div>
-            <div class="text-center mt-4 mb-3"><i class="fas fa-barcode fa-3x"></i></div>
+            <div class="text-center mt-4 mb-2"><i class="fas fa-barcode fa-3x text-dark opacity-75"></i></div>
         </div>
         
         @if($order->status == 'paid')
-        <div class="mt-3" data-html2canvas-ignore="true">
-            <button onclick="triggerDone()" class="btn btn-success w-100 fw-bold py-2 mb-2 shadow-sm" style="background-color: #198754; border: none;">
-                <i class="fas fa-check-circle me-1"></i> DONE
+        <div class="mt-4 pt-3 border-top" data-html2canvas-ignore="true">
+            <button onclick="downloadPDF()" class="btn btn-dark w-100 fw-bold py-2 shadow-sm mb-3 rounded-3">
+                <i class="fas fa-file-download me-2"></i> Download Digital Receipt
             </button>
-            <button onclick="downloadPDF()" class="btn btn-dark w-100 fw-bold py-2 shadow-sm">
-                <i class="fas fa-file-pdf me-2"></i> DOWNLOAD RECEIPT
-            </button>
-            <div class="text-center mt-3">
-                <a href="{{ route('menu.all') }}" class="text-muted small text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Start New Order</a>
+            
+            <div class="d-flex gap-2">
+                <a href="{{ route('home') }}" class="btn btn-outline-secondary w-50 fw-bold py-2 shadow-sm rounded-3" style="font-size: 0.9rem;">
+                    <i class="fas fa-utensils me-1"></i> New Order
+                </a>
+                @auth
+                <a href="{{ route('dashboard') }}" class="btn btn-outline-primary w-50 fw-bold py-2 shadow-sm rounded-3" style="font-size: 0.9rem;">
+                    <i class="fas fa-receipt me-1"></i> History
+                </a>
+                @endauth
             </div>
         </div>
         @endif
 
         @if($order->status == 'cancelled')
-        <div class="mt-3 text-center" data-html2canvas-ignore="true"><a href="{{ route('menu.all') }}" class="btn btn-dark w-100 fw-bold py-2 shadow-sm">Return to Menu</a></div>
+        <div class="mt-4 pt-3 border-top text-center" data-html2canvas-ignore="true">
+            <a href="{{ route('cart.index') }}" class="btn btn-warning w-100 fw-bold py-2 mb-2 shadow-sm rounded-3" style="color: #856404;">
+                <i class="fas fa-redo-alt me-1"></i> Retry Payment
+            </a>
+            <a href="{{ route('home') }}" class="btn btn-outline-dark w-100 fw-bold py-2 shadow-sm rounded-3">
+                Browse Menu
+            </a>
+        </div>
         @endif
     </div>
 
     @if($order->status == 'pending')
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <script>
+        // Open the silent connection to Pusher
+        var pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+            cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+            forceTLS: true
+        });
+
+        // Listen explicitly to this order's channel
+        var channel = pusher.subscribe('order.{{ $order->id }}');
+
+        // When the Webhook shouts "paid" or "cancelled", refresh instantly
+        channel.bind('payment.updated', function(data) {
+            if(data.status === 'paid' || data.status === 'cancelled') {
+                window.location.reload();
+            }
+        });
+        // 2. 🌟 THE FIX: The InfinityFree Fallback Poller
+        // Since free hosts block incoming webhooks, we must manually ask the server to check Safaricom
         setInterval(function() {
-            fetch("{{ route('order.status', $order->id) }}").then(response => response.json()).then(data => {
-                    if(data.status === 'paid' || data.status === 'cancelled') { window.location.reload(); }
-            }).catch(error => console.error('Poller Error:', error));
-        }, 3000);
+            fetch("{{ route('order.status', $order->id) }}")
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'paid' || data.status === 'cancelled') { 
+                        window.location.reload(); 
+                    }
+                }).catch(error => console.error('Fallback Poller Error:', error));
+        }, 400); // Checks every 4 seconds
     </script>
     @endif
 
-<script>
-        // Show Thank You card, wait 2.5 seconds, redirect.
+    <script>
         function triggerDone() {
             document.getElementById('thankYouOverlay').style.display = 'flex';
-            setTimeout(() => { window.location.href = "{{ route('menu.all') }}"; }, 2500);
+            setTimeout(() => { window.location.href = "{{ route('home') }}"; }, 2500);
         }
 
-        // Connected download to triggerDone with fixed thermal receipt dimensions
         function downloadPDF() {
             const element = document.getElementById('receipt-box');
             
-            // 🌟 THE FIX: Temporarily remove the CSS margin & shadow so the text doesn't get pushed off the PDF canvas
             element.style.margin = '0';
             element.style.boxShadow = 'none';
-            window.scrollTo(0,0); // Snap to top
+            element.style.borderRadius = '0';
+            window.scrollTo(0,0); 
             
             const opt = { 
-                margin: 2, // Tiny 2mm margin
+                margin: 2, 
                 filename: 'KCA_Receipt_{{ $order->id }}.pdf', 
                 image: { type: 'jpeg', quality: 1 }, 
                 html2canvas: { scale: 2, scrollY: 0, useCORS: true }, 
                 jsPDF: { unit: 'mm', format: [80, 250], orientation: 'portrait' } 
             };
             
-            // Wait for PDF to generate, save it, THEN show the Thank You card
             html2pdf().set(opt).from(element).save().then(() => {
-                // Instantly restore the beautiful styles back to the screen
                 element.style.margin = '';
                 element.style.boxShadow = '';
+                element.style.borderRadius = '';
                 triggerDone();
             });
         }
