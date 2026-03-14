@@ -68,5 +68,15 @@ public function hasRole($role)
         return $this->belongsTo(Department::class);
     }
 
- 
+    // Transactions where this user sent money
+    public function sentTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class, 'sender_id');
+    }
+
+    // Transactions where this user received money
+    public function receivedTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class, 'receiver_id');
+    }
 }

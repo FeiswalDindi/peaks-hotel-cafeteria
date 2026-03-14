@@ -92,7 +92,7 @@
         <div class="row g-4">
             @forelse($menuItems as $item)
             <div class="col-md-3 col-6">
-                <div class="card menu-card h-100 position-relative border-0 shadow-sm">
+                <div class="card menu-card h-100 position-relative border-0 shadow-sm" onclick="addToCart({{ $item->id }})" style="cursor: pointer;">
                     
                     <span id="counter-{{ $item->id }}" 
                           class="badge bg-warning text-dark position-absolute top-50 start-50 translate-middle shadow-lg" 
@@ -120,10 +120,9 @@
                                 {{ $item->category->name ?? 'General' }}
                             </small>
                             
-                            <button onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-primary rounded-circle shadow-sm" 
-                                    style="width: 35px; height: 35px; background-color: #192C57; border: none; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-plus text-white"></i>
-                            </button>
+          <button type="button" class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 35px; height: 35px; background-color: #192C57; border: none; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+    <i class="fas fa-plus text-white"></i>
+</button>
                         </div>
                     </div>
                 </div>

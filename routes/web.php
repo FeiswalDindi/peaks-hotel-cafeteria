@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
     // History Route
     Route::get('/my-orders', [OrderHistoryController::class, 'index'])->name('orders.index');
 Route::post('/feedback/submit', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.submit');
+Route::post('/wallet/transfer', [App\Http\Controllers\WalletController::class, 'transfer'])->name('wallet.transfer');
 });
 
 require __DIR__.'/auth.php';
@@ -117,11 +118,19 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         'destroy' => 'admin.staff.destroy',
     ]);
 
+
 // Inside the Admin middleware group...
 Route::get('admin/feedback', [\App\Http\Controllers\FeedbackController::class, 'index'])->name('admin.feedback.index');
 Route::post('admin/feedback/read-all', [FeedbackController::class, 'readAll'])->name('admin.feedback.read-all');
-Route::get('admin/orders', [App\Http\Controllers\Admin\OrderManagementController::class, 'index'])->name('admin.orders.index');
+
+// 🌟 SPLIT ORDER MANAGEMENT ROUTES 🌟
+Route::get('admin/orders/general', [App\Http\Controllers\Admin\OrderManagementController::class, 'index'])->name('admin.orders.index');
 Route::patch('admin/orders/{id}/status', [App\Http\Controllers\Admin\OrderManagementController::class, 'updateStatus'])->name('admin.orders.update-status');
+
+// 🌟 NEW: Staff Ledger & Export Routes
+Route::get('admin/orders/ledger', [App\Http\Controllers\Admin\OrderManagementController::class, 'ledger'])->name('admin.orders.ledger');
+Route::get('admin/orders/ledger/export', [App\Http\Controllers\Admin\OrderManagementController::class, 'exportLedger'])->name('admin.orders.ledger.export');
+
 Route::get('admin/staff/department/{id}', [App\Http\Controllers\Admin\StaffController::class, 'department'])->name('admin.staff.department');
 Route::post('/admin/staff/reset-allocations', [\App\Http\Controllers\Admin\StaffController::class, 'resetAllocations'])->name('admin.staff.reset-allocations');
 
@@ -142,5 +151,7 @@ Route::resource('admin/staff', StaffController::class, ['as' => 'admin']);
 
 
 Route::get('admin/reports/daily', [ReportController::class, 'dailyFinancial'])->name('admin.reports.daily');
+
+Route::post('/admin/wallet/override', [App\Http\Controllers\WalletController::class, 'adminOverride'])->name('admin.wallet.override');
 
 });

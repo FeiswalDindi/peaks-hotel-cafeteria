@@ -122,7 +122,7 @@
     <div class="row g-4">
     @forelse($featuredItems as $item)
         <div class="col-lg-3 col-md-4 col-6">
-            <div class="card h-100 border-0 shadow-sm food-card">
+            <div class="card h-100 border-0 shadow-sm food-card" onclick="addToCart({{ $item->id }})" style="cursor: pointer;">
                 <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                     @if($item->image)
                         <img src="{{ asset($item->image) }}" alt="{{ $item->name }}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -137,9 +137,9 @@
                     <div class="mt-auto d-flex justify-content-between align-items-center">
                         <span class="fw-bold" style="color: #192C57;">KES {{ number_format($item->price, 0) }}</span>
                         
-                        <button type="button" onclick="addToCart({{ $item->id }})" class="btn btn-sm btn-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 35px; height: 35px;">
-                            <i class="fas fa-plus text-white"></i>
-                        </button>
+                        <button type="button" class="btn btn-sm btn-dark rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 35px; height: 35px; pointer-events: none;">
+    <i class="fas fa-plus text-white"></i>
+</button>
                     </div>
                 </div>
             </div>

@@ -27,7 +27,10 @@ class StaffController extends Controller
             })->orWhere('name', 'like', "%{$search}%")->get();
         }
 
-        return view('admin.staff.index', compact('departments', 'users'));
+        // 🌟 NEW: Fetch all staff for the Admin Override Modal dropdown
+        $allStaff = User::all();
+
+        return view('admin.staff.index', compact('departments', 'users', 'allStaff'));
     }
 
     // Screen 2: The "Inside Folder" View (Lists Staff)
@@ -36,7 +39,10 @@ class StaffController extends Controller
         // Fetch the department and all its associated staff
         $department = Department::with('users')->findOrFail($id);
         
-        return view('admin.staff.department', compact('department'));
+        // 🌟 NEW: Fetch all staff here too, in case the modal is placed inside the folder view
+        $allStaff = User::all();
+        
+        return view('admin.staff.department', compact('department', 'allStaff'));
     }
 
     // Screen 3: The Profile View (Staff Analytics)
@@ -114,8 +120,7 @@ class StaffController extends Controller
         return view('admin.staff.edit', compact('staff', 'departments'));
     }
 
-    // 🌟 Save the Updates
-// 🌟 Save the Updates (Now with Password Reset Override)
+    // 🌟 Save the Updates (Now with Password Reset Override)
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -174,9 +179,7 @@ class StaffController extends Controller
         return back()->with('success', 'Staff member deleted successfully.');
     }
 
-
-
-public function resetAllocations()
+    public function resetAllocations()
     {
         // This instantly forces a complete hard-reset for every user
         \App\Models\User::query()->update([
@@ -190,4 +193,4 @@ public function resetAllocations()
 
         return redirect()->back()->with('success', 'Absolute Success! All wallets forcibly reset to KES 200, limits updated, and usage cleared.');
     }
-    }
+}

@@ -17,7 +17,8 @@ class ReceiptController extends Controller
 
         if (Auth::check()) {
             $user = Auth::user();
-            if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+            // 🌟 THE FIX: Changed !== to != (Loose comparison fixes the DB String/Int mismatch)
+            if ($order->user_id != $user->id && !$user->hasRole('admin')) {
                 abort(403, 'Unauthorized access to this receipt.');
             }
         }
@@ -33,9 +34,7 @@ class ReceiptController extends Controller
             return response()->json(['status' => $order->status]);
         }
 
-        // 🌟 THE NEW FIX: Realistic M-Pesa Timeout
-        // If the system waits for 35 seconds with no response from Safaricom,
-        // it assumes the prompt failed/timed out and safely cancels the order.
+        // Realistic M-Pesa Timeout
         if ($order->created_at->diffInSeconds(now()) > 35) {
             $order->update(['status' => 'cancelled']);
 
@@ -57,7 +56,6 @@ class ReceiptController extends Controller
                 if ($menu) $menu->increment('quantity', $item->quantity);
             }
 
-            // Send a creative message back to the UI
             session()->flash('timeout_message', 'Payment took too long to verify or failed. The system has automatically cancelled the order. Please try again!');
             return response()->json(['status' => 'cancelled']);
         }
@@ -70,11 +68,9 @@ class ReceiptController extends Controller
                 $resultCode = (string) $response['data']['ResultCode'];
 
                 if ($resultCode === '0') {
-                    // ✅ PAID SUCCESSFULLY
                     $order->update(['status' => 'paid']);
                 } 
                 elseif (in_array($resultCode, ['1032', '1', '1037', '2001', '1036'])) {
-                    // ❌ FAILED OR CANCELLED
                     $order->update(['status' => 'cancelled']);
 
                     if ($order->wallet_paid > 0 && User::find($order->user_id)) {

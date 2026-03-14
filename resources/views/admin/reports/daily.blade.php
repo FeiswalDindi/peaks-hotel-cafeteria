@@ -10,7 +10,6 @@
         body { font-family: 'Times New Roman', serif; font-size: 11pt; margin: 0; padding: 20px; color: #000; line-height: 1.4; background-color: #f4f6f9; }
         @page { size: A4; margin: 1cm; }
         
-        /* Added a white background wrapper for the web view so it looks like a paper page */
         #report-content { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto; }
         
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -36,7 +35,6 @@
             #report-content { padding: 0; box-shadow: none; max-width: 100%; margin: 0; }
         }
         
-        /* Button Styles */
         .btn { padding: 8px 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; font-family: sans-serif; transition: 0.2s; }
         .btn:hover { opacity: 0.9; }
         .btn-blue { background: #192C57; color: white; }
@@ -90,7 +88,7 @@
                     <th class="col-name">Employee Name</th>
                     <th class="col-money">Allocation</th>
                     <th class="col-money">Used Today</th>
-                    <th class="col-money">Balance</th>
+                    <th class="col-money">End Balance</th>
                     <th class="col-sign">Sign / Remark</th>
                 </tr>
             </thead>
@@ -111,21 +109,21 @@
 
                         @foreach($dept->staff as $staff)
                             @php 
-                                $startingAllocation = $staff->hasRole('admin') ? 500 : 200;
-                                $rawUsed = $staff->orders_sum_wallet_paid ?? 0;
-                                $cappedUsed = min($rawUsed, $startingAllocation); 
-                                $balance = $startingAllocation - $cappedUsed;
+                                // 🌟 THE FIX: No more artificial caps. Use exact database values.
+                                $allocation = $staff->daily_allocation ?? 0;
+                                $usedToday = $staff->orders_sum_wallet_paid ?? 0;
+                                $balance = $staff->wallet_balance ?? 0;
                                 
-                                $deptTotal += $cappedUsed;
-                                $grandTotal += $cappedUsed;
+                                $deptTotal += $usedToday;
+                                $grandTotal += $usedToday;
                             @endphp
                             <tr>
                                 <td class="col-sn">{{ $globalCount++ }}</td>
                                 <td>{{ $staff->staff_number ?? '-' }}</td>
                                 <td>{{ $staff->name }}</td>
-                                <td class="col-money">{{ number_format($startingAllocation) }}</td>
-                                <td class="col-money" style="{{ $cappedUsed > 0 ? 'font-weight:bold;' : 'color:#ccc;' }}">
-                                    {{ $cappedUsed > 0 ? number_format($cappedUsed) : '-' }}
+                                <td class="col-money">{{ number_format($allocation) }}</td>
+                                <td class="col-money" style="{{ $usedToday > 0 ? 'font-weight:bold; color:#192C57;' : 'color:#ccc;' }}">
+                                    {{ $usedToday > 0 ? number_format($usedToday) : '-' }}
                                 </td>
                                 <td class="col-money">{{ number_format($balance) }}</td>
                                 <td></td> 
@@ -179,14 +177,13 @@
             const filename = 'KCA_Financial_Report_{{ $today->format("Y_m_d") }}.pdf';
             
             const opt = {
-                // [Top, Right, Bottom, Left] - Added 15mm to the left side for safety
                 margin:       [10, 10, 10, 15], 
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
                     scale: 2, 
-                    windowWidth: 1200, // Slightly wider to ensure no squishing
-                    scrollX: 0,        // Forces snapshot to start at the absolute left edge
+                    windowWidth: 1200, 
+                    scrollX: 0,        
                     scrollY: 0 
                 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }

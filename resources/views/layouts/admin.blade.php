@@ -58,7 +58,7 @@
             align-items: center;
         }
 
-        /* 🌟 NEW: Responsive adjustments for Mobile & Tablets */
+        /* Responsive adjustments for Mobile & Tablets */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -88,9 +88,20 @@
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home me-2"></i> Dashboard
             </a>
-            <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+            
+            <a href="#ordersMenu" data-bs-toggle="collapse" class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                 <i class="fas fa-receipt me-2"></i> Order Management
+                <i class="fas fa-chevron-down float-end mt-1" style="font-size: 0.8rem;"></i>
             </a>
+            <div class="collapse {{ request()->routeIs('admin.orders.*') ? 'show' : '' }}" id="ordersMenu">
+                <a href="{{ route('admin.orders.index') }}" class="ps-5 py-2 {{ request()->routeIs('admin.orders.index') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-shopping-bag me-2"></i> General Orders
+                </a>
+                <a href="{{ route('admin.orders.ledger') }}" class="ps-5 py-2 {{ request()->routeIs('admin.orders.ledger') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-wallet me-2"></i> Staff Ledger
+                </a>
+            </div>
+
             <a href="{{ route('admin.menus.index') }}" class="{{ request()->routeIs('admin.menus.*') ? 'active' : '' }}">
                 <i class="fas fa-utensils me-2"></i> Menu Items
             </a>
@@ -171,7 +182,7 @@
         document.body.style.overflow = 'auto';
         document.body.style.paddingRight = '0px';
 
-        // 🌟 NEW: 3. Mobile Sidebar Toggle Logic
+        // 3. Mobile Sidebar Toggle Logic
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.querySelector('.sidebar');
         const sidebarOverlay = document.getElementById('sidebarOverlay');

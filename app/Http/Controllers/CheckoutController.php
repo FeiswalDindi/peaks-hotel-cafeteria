@@ -29,16 +29,16 @@ class CheckoutController extends Controller
      * ✅ FIXED: Handles payment processing with strict phone formatting
      */
     public function process(Request $request, MpesaService $mpesaService)
-    {
+{
         $cart = session()->get('cart', []);
         if(empty($cart)) return redirect()->route('home');
 
         $total = 0;
         foreach($cart as $item) { $total += $item['price'] * $item['quantity']; }
 
-        // 🌟 THE FIX #1: Calculate Wallet Usage based on wallet_balance, NOT daily_allocation
+        // 🌟 THE FIX: Removed strict 'staff' role check. If they are logged in, use their wallet!
         $walletUsed = 0;
-        if (Auth::check() && Auth::user()->hasRole('staff')) {
+        if (Auth::check()) {
             $walletUsed = min($total, Auth::user()->wallet_balance); 
         }
         $mpesaAmount = $total - $walletUsed;
