@@ -9,9 +9,24 @@ use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $menus = Menu::with('category')->latest()->get();
+        $query = Menu::with('categories');
+
+        // Search functionality
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                // Search by menu item name
+                $q->where('name', 'like', '%' . $search . '%')
+                  // Search by category name
+                  ->orWhereHas('categories', function($categoryQuery) use ($search) {
+                      $categoryQuery->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $menus = $query->latest()->get();
         return view('admin.menus.index', compact('menus'));
     }
 
@@ -23,7 +38,7 @@ class MenuController extends Controller
 
     public function edit($id)
     {
-        $menu = Menu::findOrFail($id);
+        $menu = Menu::with('categories')->findOrFail($id);
         $categories = Category::all();
         return view('admin.menus.edit', compact('menu', 'categories'));
     }
@@ -31,33 +46,37 @@ class MenuController extends Controller
     public function update(Request $request, $id)
     {
         $menu = Menu::findOrFail($id);
-        
+
         // 1. Validate the inputs
         $request->validate([
             'name' => 'required',
             'price' => 'required|numeric',
             'quantity' => 'required|integer',
-            'category_id' => 'required|exists:categories,id',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'exists:categories,id',
             'image' => 'nullable|image|max:2048', // Allow image to be optional on update
         ]);
 
-        // 2. Prepare data to update (exclude image first)
-        $data = $request->except('image');
+        // 2. Prepare data to update (exclude image and categories first)
+        $data = $request->except(['image', 'categories']);
 
         // 3. Handle Image Upload directly to public folder (InfinityFree Fix)
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = time() . '_' . $file->getClientOriginalName();
-            
+
             // Move file directly to public/uploads/menus
             $file->move(public_path('uploads/menus'), $filename);
-            
+
             // Add the correct public path to the data
-            $data['image'] = 'uploads/menus/' . $filename; 
+            $data['image'] = 'uploads/menus/' . $filename;
         }
 
         // 4. Update the menu item
         $menu->update($data);
+
+        // 5. Sync categories (this will add new ones and remove old ones)
+        $menu->categories()->sync($request->categories);
 
         return redirect()->route('admin.menus.index')->with('success', 'Menu updated successfully!');
     }
@@ -83,30 +102,33 @@ class MenuController extends Controller
             'name' => 'required',
             'price' => 'required|numeric',
             'quantity' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'exists:categories,id',
             'image' => 'nullable|image|max:2048',
         ]);
 
         $menu = new Menu();
         $menu->name = $request->name;
         $menu->price = $request->price;
-        $menu->quantity = $request->quantity; 
-        $menu->category_id = $request->category_id;
+        $menu->quantity = $request->quantity;
         $menu->description = $request->description;
 
         // Handle Image Upload directly to public folder (InfinityFree Fix)
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = time() . '_' . $file->getClientOriginalName();
-            
+
             // Move file directly to public/uploads/menus
             $file->move(public_path('uploads/menus'), $filename);
-            
+
             // Save the exact path to the database
             $menu->image = 'uploads/menus/' . $filename;
         }
 
         $menu->save();
+
+        // Attach categories to the menu
+        $menu->categories()->attach($request->categories);
 
         return redirect()->route('admin.menus.index')->with('success', 'Menu Item Added!');
     }

@@ -73,6 +73,44 @@
             .header {
                 padding: 15px;
             }
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            .table-responsive .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .card-body {
+                padding: 1rem !important;
+            }
+            .card-body.p-3 {
+                padding: 1rem !important;
+            }
+            .card-body.p-md-4 {
+                padding: 1rem !important;
+            }
+            .card-body.p-lg-5 {
+                padding: 1rem !important;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 10px;
+            }
+            .header {
+                padding: 10px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .table-responsive {
+                font-size: 0.8rem;
+            }
+            .btn-group-sm .btn {
+                padding: 0.2rem 0.4rem;
+            }
         }
     </style>
 </head>
@@ -102,9 +140,18 @@
                 </a>
             </div>
 
-            <a href="{{ route('admin.menus.index') }}" class="{{ request()->routeIs('admin.menus.*') ? 'active' : '' }}">
-                <i class="fas fa-utensils me-2"></i> Menu Items
+            <a href="#menuManagement" data-bs-toggle="collapse" class="{{ request()->routeIs('admin.menus.*', 'admin.categories.*') ? 'active' : '' }}">
+                <i class="fas fa-utensils me-2"></i> Menu Management
+                <i class="fas fa-chevron-down float-end mt-1" style="font-size: 0.8rem;"></i>
             </a>
+            <div class="collapse {{ request()->routeIs('admin.menus.*', 'admin.categories.*') ? 'show' : '' }}" id="menuManagement">
+                <a href="{{ route('admin.categories.index') }}" class="ps-5 py-2 {{ request()->routeIs('admin.categories.*') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-tags me-2"></i> Categories
+                </a>
+                <a href="{{ route('admin.menus.index') }}" class="ps-5 py-2 {{ request()->routeIs('admin.menus.*') ? 'text-white' : '' }}" style="font-size: 0.95rem;">
+                    <i class="fas fa-utensils me-2"></i> Menu Items
+                </a>
+            </div>
             <a href="{{ route('admin.reports.daily') }}" class="{{ request()->routeIs('admin.reports.daily') ? 'active' : '' }}">
                 <i class="fas fa-file-invoice-dollar me-2"></i> Daily Financial Report
             </a>
@@ -202,5 +249,7 @@
         }
     });
     </script>
+
+    @yield('scripts')
 </body>
 </html>

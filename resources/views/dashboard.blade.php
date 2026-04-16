@@ -155,7 +155,7 @@
         const liveIndicator = document.getElementById('live-indicator');
         liveIndicator.style.opacity = '1'; // Flash the green dot
 
-        fetch(window.location.href, {
+        fetch("{{ route('admin.dashboard.live') }}", {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
@@ -221,7 +221,8 @@
         .catch(error => console.error("Live Update Failed", error));
     }
 
-    // Run silently every 10 seconds
-    setInterval(fetchDashboardData, 10000); 
+    // Fetch immediately and then refresh every 10 seconds
+    fetchDashboardData();
+    setInterval(fetchDashboardData, 10000);
 </script>
 @endsection

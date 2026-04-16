@@ -97,6 +97,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     
     // Main Dashboard
     Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('/admin/dashboard/live', [AdminController::class, 'liveDashboard'])->name('admin.dashboard.live');
     
     // Menu Management
     Route::resource('admin/menus', MenuController::class)->names([
@@ -106,6 +107,16 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         'edit'    => 'admin.menus.edit',
         'update'  => 'admin.menus.update',
         'destroy' => 'admin.menus.destroy',
+    ]);
+
+    // Category Management
+    Route::resource('admin/categories', \App\Http\Controllers\Admin\CategoryController::class)->names([
+        'index'   => 'admin.categories.index',
+        'create'  => 'admin.categories.create',
+        'store'   => 'admin.categories.store',
+        'edit'    => 'admin.categories.edit',
+        'update'  => 'admin.categories.update',
+        'destroy' => 'admin.categories.destroy',
     ]);
 
     // Staff Management (Now includes EDIT and UPDATE)

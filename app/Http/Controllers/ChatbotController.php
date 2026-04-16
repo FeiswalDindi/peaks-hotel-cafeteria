@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Menu;
 use App\Models\Order;
 use App\Models\User;
@@ -23,6 +25,10 @@ class ChatbotController extends Controller
         
         $apiKey = env('GEMINI_API_KEY');
         $user = Auth::user();
+
+        if (empty($apiKey)) {
+            return response()->json(['reply' => "AI configuration not available. Please set GEMINI_API_KEY."], 500);
+        }
 
         // 1. Gather Live Menu & Popularity
         $availableMenu = Menu::where('quantity', '>', 0)->get();
@@ -44,14 +50,11 @@ class ChatbotController extends Controller
         $isStaff = Auth::check() && $user->hasRole('staff');
 
         if ($isAdmin) {
-            // 🌟 ADMIN/MANAGEMENT CONTEXT
             $today = Carbon::today();
             $todayRevenue = Order::whereDate('created_at', $today)->where('status', 'paid')->sum('total_amount');
             $pendingOrders = Order::where('status', 'pending')->count();
             
-            // 🌟 THE 500 ERROR FIX: Safely counting staff without crashing the relationship
             $totalStaff = User::all()->filter(fn($u) => $u->hasRole('staff'))->count();
-            
             $totalWalletLiability = User::sum('wallet_balance');
             $departments = DB::table('users')->whereNotNull('department')->distinct()->pluck('department')->implode(', ');
 
@@ -73,9 +76,7 @@ class ChatbotController extends Controller
             Menu Today:\n$menuText";
 
         } elseif ($isStaff) {
-            // 🌟 THE ORDER HISTORY FIX: Giving Neema access to staff orders again
             $remainingLimit = $user->daily_allocation - $user->allocation_used_today;
-            
             $recentOrders = Order::with('items')->where('user_id', $user->id)->orderBy('created_at', 'desc')->take(3)->get();
             $orderHistoryText = $recentOrders->isNotEmpty() 
                 ? $recentOrders->map(fn($o) => "Order #{$o->id}: " . $o->items->pluck('menu_name')->implode(', '))->implode(" | ")
@@ -94,7 +95,18 @@ class ChatbotController extends Controller
             Your goal is to help the staff member manage their wallet and meals. 
             Remind them of their remaining daily limit if they ask for expensive items. 
             If their balance is low, suggest affordable items from the menu.
-            You can also see their Recent Food Orders to recommend what they usually like eating.
+            You can also see their Recent Food Orders to recommend what they usually like eating
+            CRITICAL RULES:
+- If the user asks about their order status, tell them to check their dashboard. You cannot see live order statuses yet.
+- Always use the personal context data to make your responses more relevant and personalized.
+- Format your responses beautifully using markdown (bolding for food items and KES prices).
+- If the user has a low remaining limit, proactively suggest affordable menu items that fit within their limit.
+- NEVER suggest they check the system or dashboard for their personal details. You are their personal assistant and have all the information they need in the personal context. Always provide direct answers based on that data
+- Admin metrics and data are strictly off-limits to staff users. Do not reveal any admin insights or statistics to staff, even if they ask. If they ask about admin data, respond with 'Sorry, I don't have access to that information.'
+- If they ask about their order status, respond with 'Please check your dashboard for the latest updates on your orders. I don't have access to live order statuses yet.'
+Keep your responses concise, under 3 sentences. You are a busy cashier, not a blogger.
+ If a user asks about their order status, tell them to check their dashboard. You cannot see live order statuses yet.
+
 
             CRITICAL LANGUAGE RULE: 
             You must match the user's language and vibe. If they speak to you in English, reply in English. If they speak in Swahili or Kenyan Sheng', reply natively and naturally in the exact same language/slang.
@@ -104,7 +116,6 @@ class ChatbotController extends Controller
             Menu Today:\n$menuText";
 
         } else {
-            // GUEST CONTEXT
             $userContext = "User Status: Guest (Not logged in). Pay method: M-Pesa only.";
             $systemInstruction = "You are Neema, the friendly and fast lead cashier for Peaks Hotel Cafeteria. 
             Guide the guest through today's menu and recommend the best sellers.
@@ -128,22 +139,70 @@ class ChatbotController extends Controller
             $contents[] = ['role' => 'user', 'parts' => [['text' => $request->message]]];
         }
 
-        // 4. Call Gemini 2.5 Flash
+        $promptLines = [$systemInstruction];
+        foreach ($contents as $content) {
+            $role = $content['role'] === 'user' ? 'User' : 'Assistant';
+            $promptLines[] = "$role: {$content['parts'][0]['text']}";
+        }
+        $promptText = implode("\n", $promptLines);
+
+        // 4. DYNAMIC MODEL DETECTOR (Cached for 24 hours to keep the chat fast)
+        $activeModel = Cache::remember('gemini_active_model', 86400, function () use ($apiKey) {
+            try {
+                $response = Http::withoutVerifying()->timeout(10)->get('https://generativelanguage.googleapis.com/v1beta/models?key=' . $apiKey);
+                if ($response->successful()) {
+                    $models = $response->json('models', []);
+                    foreach ($models as $model) {
+                        // Find a model that is a 'gemini' 'flash' variant and supports generation
+                        if (str_contains($model['name'], 'gemini') && str_contains($model['name'], 'flash') && in_array('generateContent', $model['supportedGenerationMethods'] ?? [])) {
+                            return str_replace('models/', '', $model['name']); 
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Gemini Model Fetch Failed: ' . $e->getMessage());
+            }
+            // Absolute fallback if the fetch fails
+            return 'gemini-1.5-flash'; 
+        });
+
+        // 5. Send Dynamic Request
         try {
-            $response = Http::withoutVerifying()->withHeaders([
+            $response = Http::withoutVerifying()->timeout(30)->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey, [
-                'systemInstruction' => ['parts' => [['text' => $systemInstruction]]],
-                'contents' => $contents
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/{$activeModel}:generateContent?key={$apiKey}", [
+                'contents' => [
+                    [
+                        'role' => 'user',
+                        'parts' => [
+                            ['text' => $promptText]
+                        ]
+                    ]
+                ],
+                // Disable safety blocks to prevent admin metric rejections
+                'safetySettings' => [
+                    ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE']
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.2,
+                    'maxOutputTokens' => 512
+                ]
             ]);
 
             if ($response->successful()) {
-                $reply = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? "I didn't quite catch that.";
+                $responseData = $response->json();
+                $reply = data_get($responseData, 'candidates.0.content.parts.0.text') ?? "I didn't quite catch that.";
                 return response()->json(['reply' => str_replace(['**', '*'], '', $reply)]);
             }
-            return response()->json(['reply' => "Still under Development... just stay put, Coming soon!"], 500);
+
+            Log::error('Gemini API Error', ['status' => $response->status(), 'model_used' => $activeModel, 'body' => $response->json()]);
+            return response()->json(['reply' => "Neema is having trouble reaching the AI service right now."], 500);
 
         } catch (\Exception $e) {
+            Log::error('Gemini Exception', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['reply' => "Whoops! My terminal just froze. Give me a second."], 500);
         }
     }

@@ -117,7 +117,11 @@
                         
                         <div class="d-flex justify-content-between align-items-center mt-auto">
                             <small class="text-muted fw-bold">
-                                {{ $item->category->name ?? 'General' }}
+                                @if($item->categories->count() > 0)
+                                    {{ $item->categories->pluck('name')->join(', ') }}
+                                @else
+                                    General
+                                @endif
                             </small>
                             
           <button type="button" class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 35px; height: 35px; background-color: #192C57; border: none; display: flex; align-items: center; justify-content: center; pointer-events: none;">

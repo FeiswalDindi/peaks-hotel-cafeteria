@@ -1,0 +1,12 @@
+-- 1. Delete the child records first so there are no conflicts
+DELETE FROM order_items;
+
+-- 2. Delete the parent orders
+DELETE FROM orders;
+
+-- 3. Reset the receipt/order numbers back to 1
+ALTER TABLE order_items AUTO_INCREMENT = 1;
+ALTER TABLE orders AUTO_INCREMENT = 1;
+
+-- 4. Reset all staff wallet allocations for the day
+UPDATE users SET allocation_used_today = 0;

@@ -12,7 +12,7 @@ class PublicMenuController extends Controller
     {
         // Homepage: Show 4 items that have stock
         $featuredItems = Menu::where('quantity', '>', 0)
-                             ->with('category') // Load the category name
+                             ->with('categories') // Load the categories (many-to-many)
                              ->orderBy('created_at', 'desc')
                              ->take(4) 
                              ->get();
@@ -22,26 +22,25 @@ class PublicMenuController extends Controller
 
     public function all(Request $request)
     {
-        // 1. Start query for Available items with their Category
-        $query = Menu::where('quantity', '>', 0)->with('category');
+        // 1. Start query for Available items with their Categories
+        $query = Menu::where('quantity', '>', 0)->with('categories');
 
         // 2. Search Logic
         if ($request->has('search') && $request->search != '') {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 3. Category Filter Logic (Using the Relationship)
+        // 3. Category Filter Logic (Using the many-to-many Relationship)
         if ($request->has('category') && $request->category != 'All') {
-            $query->whereHas('category', function($q) use ($request) {
+            $query->whereHas('categories', function($q) use ($request) {
                 $q->where('name', $request->category);
             });
         }
 
-        // 4. Get Items (Sorted by Name since we can't sort by category string easily)
+        // 4. Get Items (Sorted by Name)
         $menuItems = $query->orderBy('name')->get();
-        
+
         // 5. Get Category Names for the Buttons
-        // We fetch distinct names from the Categories table, not the Menu table
         $categories = Category::orderBy('name')->pluck('name');
 
         return view('menu.index', compact('menuItems', 'categories'));

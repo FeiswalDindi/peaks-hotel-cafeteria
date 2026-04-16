@@ -8,22 +8,31 @@
 
     <style>
         body { font-family: 'Times New Roman', serif; font-size: 11pt; margin: 0; padding: 20px; color: #000; line-height: 1.4; background-color: #f4f6f9; }
-        @page { size: A4; margin: 1cm; }
+        @page { size: A4 landscape; margin: 1cm; }
         
-        #report-content { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto; }
+        #report-content { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 100%; width: 100%; margin: 0 auto; }
         
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         .logo { font-size: 18pt; font-weight: bold; text-transform: uppercase; }
         .sub-header { font-size: 12pt; font-style: italic; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-        th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; word-wrap: break-word; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; min-width: 100%; }
+        th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; word-wrap: break-word; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         
         .col-sn { width: 35px; text-align: center; }
         .col-staff-no { width: 80px; }
-        .col-name { width: auto; }
+        .col-name { width: auto; min-width: 180px; }
         .col-money { width: 90px; text-align: right; }
-        .col-sign { width: 110px; }
+        .col-sign { width: 120px; }
+
+        tr, .dept-header, .subtotal-row { page-break-inside: avoid; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white; padding: 0; }
+            #report-content { padding: 0; box-shadow: none; max-width: 100%; margin: 0; }
+            html, body { width: 100%; }
+        }
         
         .dept-header { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; padding: 10px; }
         .subtotal-row { background-color: #f9f9f9; font-weight: bold; font-style: italic; }
@@ -177,16 +186,18 @@
             const filename = 'KCA_Financial_Report_{{ $today->format("Y_m_d") }}.pdf';
             
             const opt = {
-                margin:       [10, 10, 10, 15], 
+                margin:       [8, 8, 8, 8],
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
-                    scale: 2, 
-                    windowWidth: 1200, 
-                    scrollX: 0,        
-                    scrollY: 0 
+                    scale: 2,
+                    windowWidth: element.scrollWidth,
+                    windowHeight: element.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0
                 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak:    { mode: ['css', 'legacy'] }
             };
             
             html2pdf().set(opt).from(element).save();
